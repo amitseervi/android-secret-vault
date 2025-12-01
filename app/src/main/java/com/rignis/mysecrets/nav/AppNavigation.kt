@@ -1,5 +1,7 @@
 package com.rignis.mysecrets.nav
 
+import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -9,25 +11,39 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.rignis.auth.domain.CipherManager
+import com.rignis.core.ui.routes.about.AboutRoute
 import com.rignis.core.ui.routes.detail.DetailRoute
 import com.rignis.core.ui.routes.home.HomeRoute
+import com.rignis.core.ui.routes.home.HomeScreenDrawer
+import com.rignis.core.ui.routes.settings.SettingsRoute
 import com.rignis.core.ui.viewmodels.detail.DetailViewModel
 import com.rignis.core.ui.viewmodels.home.HomeViewModel
+import com.rignis.core.ui.viewmodels.settings.SettingsViewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import timber.log.Timber
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
+    LocalActivity.current as Activity
     NavHost(navController, AppDestination.Home.route) {
         composable(AppDestination.Home.route) {
             val viewModel: HomeViewModel = koinViewModel()
             val state = viewModel.state.collectAsStateWithLifecycle()
-            HomeRoute(state, viewModel::onAction, navigateToAddSecret = {
-                navController.navigate("detail")
-            }, openDetailPage = { id ->
-                navController.navigate("detail?id=$id")
-            })
+            HomeScreenDrawer(navigateToSetting = {
+                navController.navigate(AppDestination.Setting.route)
+            }, navigateToAbout = {
+                navController.navigate(AppDestination.About.route)
+            }, navigateToOss = {
+
+            }) { modifier, openDrawer ->
+                HomeRoute(
+                    state, viewModel::onAction, navigateToAddSecret = {
+                    navController.navigate("detail")
+                }, { id ->
+                    navController.navigate("detail?id=$id")
+                }, openDrawer
+                )
+            }
         }
 
         composable(
@@ -43,16 +59,23 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             if (id.isNullOrEmpty()) {
                 viewModel.initializeForNewEntry()
             } else {
-                Timber.tag("amittest").i("Initialize viewmodel with id =$id")
                 viewModel.initializeWithEditMode(id)
             }
-            Timber.tag("amittest").i("Provided id= $id")
-            val state = viewModel.state.collectAsStateWithLifecycle()
             val cipherManager: CipherManager = koinInject<CipherManager>()
-            DetailRoute(state, cipherManager, viewModel::onAction, onNavigateBack = {
+            DetailRoute(viewModel, cipherManager, viewModel::onAction, onNavigateBack = {
                 navController.navigateUp()
             })
+        }
 
+        composable(AppDestination.About.route) {
+            AboutRoute { navController.navigateUp() }
+        }
+
+        composable(AppDestination.Setting.route) {
+            val settingViewModel: SettingsViewModel = koinViewModel()
+            SettingsRoute(settingViewModel) {
+                navController.navigateUp()
+            }
         }
     }
 }

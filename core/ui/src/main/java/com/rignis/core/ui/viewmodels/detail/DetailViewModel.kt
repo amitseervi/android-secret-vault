@@ -7,7 +7,9 @@ import com.rignis.core.ui.routes.detail.ClipBoardHandler
 import com.rignis.store.api.DataStore
 import com.rignis.store.api.EncryptedDataEntry
 import com.rignis.store.api.EncryptedDataItem
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -16,7 +18,11 @@ import kotlinx.coroutines.launch
 
 sealed interface DetailPageState {
     data class NewEntry(
-        val title: String, val body: String, val secretVisible: Boolean, val submitEnabled: Boolean
+        val title: String,
+        val body: String,
+        val secretVisible: Boolean,
+        val submitEnabled: Boolean,
+        val isSubmitSuccessful: Boolean
     ) : DetailPageState
 
     data class EditMode(
@@ -24,7 +30,8 @@ sealed interface DetailPageState {
         val body: String,
         val secretVisible: Boolean,
         val saveEnabled: Boolean = false,
-        val locked: Boolean = true
+        val locked: Boolean = true,
+        val isSubmitSuccessful: Boolean
     ) : DetailPageState
 
     object Loading : DetailPageState
@@ -49,6 +56,10 @@ sealed interface DetailPageAction {
 class DetailViewModel(
     private val dataStore: DataStore, private val clipBoardHandler: ClipBoardHandler
 ) : BaseViewModel<DetailPageState, DetailPageAction>() {
+    private val _navigateBackEventPublisher = MutableSharedFlow<Boolean?>()
+    val navigateBackEventPublisher: SharedFlow<Boolean?>
+        get() = _navigateBackEventPublisher.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     companion object {
         private val initialPageState = DetailPageState.Loading
     }
@@ -70,7 +81,11 @@ class DetailViewModel(
             encryptedDataItem = item
             _state.update { current ->
                 DetailPageState.EditMode(
-                    title = item.title, body = "", secretVisible = false, saveEnabled = false
+                    title = item.title,
+                    body = "",
+                    secretVisible = false,
+                    saveEnabled = false,
+                    isSubmitSuccessful = false
                 )
             }
         }
@@ -81,7 +96,11 @@ class DetailViewModel(
             encryptedDataItem = null
             _state.update { current ->
                 DetailPageState.NewEntry(
-                    title = "", body = "", secretVisible = false, submitEnabled = false
+                    title = "",
+                    body = "",
+                    secretVisible = false,
+                    submitEnabled = false,
+                    isSubmitSuccessful = false
                 )
             }
         }
@@ -211,26 +230,40 @@ class DetailViewModel(
 
     private fun onSubmit(cipherManager: CipherManager) {
         viewModelScope.launch {
-            when (val currentState = _state.value) {
-                is DetailPageState.EditMode -> {
-                    val currentItem = encryptedDataItem!!
-                    val encryptedBody = cipherManager.encryptData(currentState.body.toByteArray())
-                    dataStore.updateExisting(
-                        currentItem.id, EncryptedDataEntry(
-                            currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
+            try {
+                when (val currentState = _state.value) {
+                    is DetailPageState.EditMode -> {
+                        val currentItem = encryptedDataItem!!
+                        val encryptedBody =
+                            cipherManager.encryptData(currentState.body.toByteArray())
+                        dataStore.updateExisting(
+                            currentItem.id, EncryptedDataEntry(
+                                currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
+                            )
                         )
-                    )
-                }
+                    }
 
-                is DetailPageState.NewEntry -> {
-                    val encryptedBody = cipherManager.encryptData(currentState.body.toByteArray())
-                    dataStore.insertItem(
-                        EncryptedDataEntry(
-                            currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
+                    is DetailPageState.NewEntry -> {
+                        val encryptedBody =
+                            cipherManager.encryptData(currentState.body.toByteArray())
+                        dataStore.insertItem(
+                            EncryptedDataEntry(
+                                currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
+                            )
                         )
-                    )
+                    }
+
+                    DetailPageState.Loading -> Unit
                 }
-                DetailPageState.Loading -> Unit
+                _state.update { currentState ->
+                    when (currentState) {
+                        is DetailPageState.EditMode -> currentState.copy(isSubmitSuccessful = true)
+                        DetailPageState.Loading -> currentState
+                        is DetailPageState.NewEntry -> currentState.copy(isSubmitSuccessful = true)
+                    }
+                }
+            } catch (e: Exception) {
+
             }
         }
     }

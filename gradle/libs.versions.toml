@@ -67,4 +67,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 android-library = { id = "com.android.library", version.ref = "agp" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "kotlin-ksp" }
 rignisCommonAndroidPlugin = { id = "rignis.common.android" }
-
+licences = { id = "rignis.licences" }

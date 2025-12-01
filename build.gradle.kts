@@ -6,4 +6,5 @@ plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.rignisCommonAndroidPlugin) apply false
+    alias(libs.plugins.licences) apply false
 }
