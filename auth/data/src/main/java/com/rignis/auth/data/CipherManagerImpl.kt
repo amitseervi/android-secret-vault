@@ -3,9 +3,11 @@ package com.rignis.auth.data
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricPrompt
 import androidx.fragment.app.FragmentActivity
+import com.rignis.auth.domain.CanAuthenticate
 import com.rignis.auth.domain.CipherManager
 import com.rignis.auth.domain.EncryptedData
 import com.rignis.common.ExecutorFactory
@@ -16,9 +18,6 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-enum class CanAuthenticate {
-    YES, NO_HARDWARE, HW_UNAVAILABLE, NOT_ENROLLED, NOT_SUPPORTED, UPDATE_REQUIRED, UNKNOWN
-}
 
 class CipherManagerImpl(
     private val executorFactory: ExecutorFactory, private val activity: FragmentActivity
@@ -127,16 +126,16 @@ class CipherManagerImpl(
         prompt.authenticate(info, BiometricPrompt.CryptoObject(cipher))
     }
 
-//    override fun canAuthenticate(): CanAuthenticate {
-//        val biometricManager = BiometricManager.from(activity)
-//        return when (biometricManager.canAuthenticate(BIOMETRIC_STRONG)) {
-//            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> CanAuthenticate.HW_UNAVAILABLE
-//            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> CanAuthenticate.NOT_ENROLLED
-//            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> CanAuthenticate.NO_HARDWARE
-//            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> CanAuthenticate.UPDATE_REQUIRED
-//            BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED -> CanAuthenticate.NOT_SUPPORTED
-//            BiometricManager.BIOMETRIC_SUCCESS -> CanAuthenticate.YES
-//            else -> CanAuthenticate.UNKNOWN
-//        }
-//    }
+    override suspend fun canAuthenticate(): CanAuthenticate {
+        val biometricManager = BiometricManager.from(activity)
+        return when (biometricManager.canAuthenticate(BIOMETRIC_STRONG)) {
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> CanAuthenticate.HW_UNAVAILABLE
+            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> CanAuthenticate.NOT_ENROLLED
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> CanAuthenticate.NO_HARDWARE
+            BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> CanAuthenticate.UPDATE_REQUIRED
+            BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED -> CanAuthenticate.NOT_SUPPORTED
+            BiometricManager.BIOMETRIC_SUCCESS -> CanAuthenticate.YES
+            else -> CanAuthenticate.UNKNOWN
+        }
+    }
 }

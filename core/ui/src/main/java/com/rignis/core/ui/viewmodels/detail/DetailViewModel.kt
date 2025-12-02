@@ -8,23 +8,22 @@ import com.rignis.store.api.DataStore
 import com.rignis.store.api.EncryptedDataEntry
 import com.rignis.store.api.EncryptedDataItem
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-sealed interface DetailPageState {
+sealed interface DetailPageUiState {
     data class NewEntry(
         val title: String,
         val body: String,
         val secretVisible: Boolean,
         val submitEnabled: Boolean,
         val isSubmitSuccessful: Boolean
-    ) : DetailPageState
+    ) : DetailPageUiState
 
     data class EditMode(
         val title: String,
@@ -33,46 +32,82 @@ sealed interface DetailPageState {
         val saveEnabled: Boolean = false,
         val locked: Boolean = true,
         val isSubmitSuccessful: Boolean
-    ) : DetailPageState
+    ) : DetailPageUiState
 
-    object Loading : DetailPageState
+    object Loading : DetailPageUiState
 }
 
-/**
- * PageState --> 1. Only View 2. Add New 3. Modify Title 4. Modify secret
- */
+private data class DetailViewModelState(
+    val title: String,
+    val body: String,
+    val secretVisible: Boolean,
+    val isEditLocked: Boolean,
+    val isInEditMode: Boolean,
+    val isSubmissionSuccessful: Boolean,
+    val submitButtonEnabled: Boolean,
+    val isEditModeItemLoaded: Boolean,
+)
 
 sealed interface DetailPageAction {
     object ToggleVisibilityOfSecret : DetailPageAction
     data class CopySecret(val cipherManager: CipherManager) : DetailPageAction
-
     data class UpdateModifiedTitle(val value: String) : DetailPageAction
-
     data class UpdateModifiedBody(val value: String) : DetailPageAction
-
     class UnlockSecret(val cipherManager: CipherManager) : DetailPageAction
     class OnSubmitClick(val cipherManager: CipherManager) : DetailPageAction
+    object OnDeleteClick : DetailPageAction
+}
 
-    class OnDeleteClick(val cipherManager: CipherManager) : DetailPageAction
+private fun DetailViewModelState.toUiState(): DetailPageUiState {
+    return if (isInEditMode) {
+        if (isEditModeItemLoaded) {
+            DetailPageUiState.EditMode(
+                title = title,
+                body = body,
+                secretVisible = secretVisible,
+                saveEnabled = submitButtonEnabled,
+                locked = isEditLocked,
+                isSubmitSuccessful = isSubmissionSuccessful
+            )
+        } else {
+            DetailPageUiState.Loading
+        }
+    } else {
+        DetailPageUiState.NewEntry(
+            title = title,
+            body = body,
+            secretVisible = secretVisible,
+            submitEnabled = submitButtonEnabled,
+            isSubmitSuccessful = isSubmissionSuccessful
+        )
+    }
 }
 
 class DetailViewModel(
     private val dataStore: DataStore, private val clipBoardHandler: ClipBoardHandler
-) : BaseViewModel<DetailPageState, DetailPageAction>() {
-    private val _navigateBackEventPublisher = MutableSharedFlow<Boolean?>()
-    val navigateBackEventPublisher: SharedFlow<Boolean?>
-        get() = _navigateBackEventPublisher.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
+) : BaseViewModel<DetailPageUiState, DetailPageAction>() {
     companion object {
-        private val initialPageState = DetailPageState.Loading
+        private val initialUiPageState = DetailPageUiState.Loading
     }
 
     private var _existingId: String? = null
     private var encryptedDataItem: EncryptedDataItem? = null
 
-    private val _state: MutableStateFlow<DetailPageState> = MutableStateFlow(initialPageState)
-    override val state: StateFlow<DetailPageState>
-        get() = _state.stateIn(viewModelScope, SharingStarted.Eagerly, initialPageState)
+    private val _state: MutableStateFlow<DetailViewModelState> = MutableStateFlow(
+        DetailViewModelState(
+            title = "",
+            body = "",
+            secretVisible = false,
+            isEditLocked = true,
+            isInEditMode = false,
+            isSubmissionSuccessful = false,
+            submitButtonEnabled = false,
+            isEditModeItemLoaded = false
+        )
+    )
+    override val state: StateFlow<DetailPageUiState>
+        get() = _state.map { it.toUiState() }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, initialUiPageState)
 
     fun initializeWithEditMode(id: String) {
         if (!_existingId.isNullOrEmpty()) {
@@ -83,13 +118,7 @@ class DetailViewModel(
             val item = dataStore.getDataById(id)
             encryptedDataItem = item
             _state.update { current ->
-                DetailPageState.EditMode(
-                    title = item.title,
-                    body = "",
-                    secretVisible = false,
-                    saveEnabled = false,
-                    isSubmitSuccessful = false
-                )
+                current.copy(title = item.title, isEditModeItemLoaded = true, isInEditMode = true)
             }
         }
     }
@@ -98,13 +127,7 @@ class DetailViewModel(
         viewModelScope.launch {
             encryptedDataItem = null
             _state.update { current ->
-                DetailPageState.NewEntry(
-                    title = "",
-                    body = "",
-                    secretVisible = false,
-                    submitEnabled = false,
-                    isSubmitSuccessful = false
-                )
+                current.copy(isInEditMode = false)
             }
         }
     }
@@ -136,27 +159,23 @@ class DetailViewModel(
             }
 
             is DetailPageAction.OnDeleteClick -> {
-                deleteSecret(e.cipherManager)
+                deleteSecret()
             }
         }
     }
 
-    private fun deleteSecret(cipherManager: CipherManager) {
+    private fun deleteSecret() {
         viewModelScope.launch {
             encryptedDataItem?.let { data ->
                 val s = _state.value
-                if (s !is DetailPageState.EditMode || s.locked) {
+                if (!s.isInEditMode || s.isEditLocked) {
                     return@let
                 }
                 with(Dispatchers.IO) {
                     dataStore.deleteDataById(data.id)
                 }
                 _state.update { currentState ->
-                    when (currentState) {
-                        is DetailPageState.EditMode -> currentState.copy(isSubmitSuccessful = true)
-                        DetailPageState.Loading -> currentState
-                        is DetailPageState.NewEntry -> currentState.copy(isSubmitSuccessful = true)
-                    }
+                    currentState.copy(isSubmissionSuccessful = true)
                 }
 
             }
@@ -180,22 +199,20 @@ class DetailViewModel(
     private fun unlockSecret(cipherManager: CipherManager) {
         viewModelScope.launch {
             _state.update { current ->
-                when (current) {
-                    is DetailPageState.EditMode -> {
-                        val data = encryptedDataItem!!
-                        val cipherDecryptedResult = cipherManager.decryptData(
-                            data.encryptedBody, data.initializationVector
+                if (current.isInEditMode) {
+                    val data = encryptedDataItem!!
+                    val cipherDecryptedResult = cipherManager.decryptData(
+                        data.encryptedBody, data.initializationVector
+                    )
+                    if (cipherDecryptedResult.isSuccess) {
+                        current.copy(
+                            body = String(cipherDecryptedResult.getOrThrow()), isEditLocked = false
                         )
-                        if (cipherDecryptedResult.isSuccess) {
-                            current.copy(
-                                body = String(cipherDecryptedResult.getOrThrow()), locked = false
-                            )
-                        } else {
-                            current
-                        }
+                    } else {
+                        current
                     }
-
-                    else -> current
+                } else {
+                    current
                 }
             }
         }
@@ -205,17 +222,10 @@ class DetailViewModel(
     private fun updateBody(v: String) {
         viewModelScope.launch {
             _state.update { current ->
-                when (current) {
-                    is DetailPageState.EditMode -> current.copy(
-                        body = v,
-                        saveEnabled = v.isNotEmpty() && current.title.isNotEmpty() && !current.locked
-                    )
-
-                    DetailPageState.Loading -> current
-                    is DetailPageState.NewEntry -> current.copy(
-                        body = v, submitEnabled = v.isNotEmpty() && current.title.isNotEmpty()
-                    )
-                }
+                current.copy(
+                    body = v,
+                    submitButtonEnabled = v.isNotEmpty() && current.title.isNotEmpty() && (!current.isInEditMode || !current.isEditLocked)
+                )
             }
         }
     }
@@ -224,72 +234,41 @@ class DetailViewModel(
     private fun updateTitle(v: String) {
         viewModelScope.launch {
             _state.update { current ->
-                when (current) {
-                    is DetailPageState.EditMode -> current.copy(
-                        title = v,
-                        saveEnabled = v.isNotEmpty() && current.body.isNotEmpty() && !current.locked
-                    )
-
-                    DetailPageState.Loading -> current
-                    is DetailPageState.NewEntry -> current.copy(
-                        title = v, submitEnabled = v.isNotEmpty() && current.body.isNotEmpty()
-                    )
-                }
+                current.copy(
+                    title = v,
+                    submitButtonEnabled = v.isNotEmpty() && current.body.isNotEmpty() && (!current.isInEditMode || !current.isEditLocked)
+                )
             }
         }
     }
 
     private fun onSecretVisibilityToggled() {
         _state.update { current ->
-            when (current) {
-                is DetailPageState.EditMode -> {
-                    current.copy(secretVisible = !current.secretVisible)
-                }
-
-                is DetailPageState.NewEntry -> {
-                    current.copy(secretVisible = !current.secretVisible)
-                }
-
-                else -> {
-                    current
-                }
-            }
+            current.copy(secretVisible = !current.secretVisible)
         }
     }
 
     private fun onSubmit(cipherManager: CipherManager) {
         viewModelScope.launch {
             try {
-                when (val currentState = _state.value) {
-                    is DetailPageState.EditMode -> {
-                        val currentItem = encryptedDataItem!!
-                        val encryptedBody =
-                            cipherManager.encryptData(currentState.body.toByteArray())
-                        dataStore.updateExisting(
-                            currentItem.id, EncryptedDataEntry(
-                                currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
-                            )
+                val currentState = _state.value
+                val encryptedBody = cipherManager.encryptData(currentState.body.toByteArray())
+                if (currentState.isInEditMode) {
+                    val currentItem = encryptedDataItem!!
+                    dataStore.updateExisting(
+                        currentItem.id, EncryptedDataEntry(
+                            currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
                         )
-                    }
-
-                    is DetailPageState.NewEntry -> {
-                        val encryptedBody =
-                            cipherManager.encryptData(currentState.body.toByteArray())
-                        dataStore.insertItem(
-                            EncryptedDataEntry(
-                                currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
-                            )
+                    )
+                } else {
+                    dataStore.insertItem(
+                        EncryptedDataEntry(
+                            currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
                         )
-                    }
-
-                    DetailPageState.Loading -> Unit
+                    )
                 }
                 _state.update { currentState ->
-                    when (currentState) {
-                        is DetailPageState.EditMode -> currentState.copy(isSubmitSuccessful = true)
-                        DetailPageState.Loading -> currentState
-                        is DetailPageState.NewEntry -> currentState.copy(isSubmitSuccessful = true)
-                    }
+                    currentState.copy(isSubmissionSuccessful = true)
                 }
             } catch (e: Exception) {
 

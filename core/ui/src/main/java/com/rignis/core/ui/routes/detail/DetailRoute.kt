@@ -31,11 +31,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rignis.auth.domain.CanAuthenticate
 import com.rignis.auth.domain.CipherManager
 import com.rignis.auth.domain.EncryptedData
 import com.rignis.core.ui.R
 import com.rignis.core.ui.viewmodels.detail.DetailPageAction
-import com.rignis.core.ui.viewmodels.detail.DetailPageState
+import com.rignis.core.ui.viewmodels.detail.DetailPageUiState
 import com.rignis.core.ui.viewmodels.detail.DetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,9 +49,9 @@ fun DetailRoute(
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle()
     val exit = when (val v = state.value) {
-        is DetailPageState.EditMode -> v.isSubmitSuccessful
-        DetailPageState.Loading -> false
-        is DetailPageState.NewEntry -> v.isSubmitSuccessful
+        is DetailPageUiState.EditMode -> v.isSubmitSuccessful
+        DetailPageUiState.Loading -> false
+        is DetailPageUiState.NewEntry -> v.isSubmitSuccessful
     }
     if (exit) {
         onNavigateBack()
@@ -62,7 +63,7 @@ fun DetailRoute(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DetailScreen(
-    state: State<DetailPageState>,
+    state: State<DetailPageUiState>,
     cipherManager: CipherManager,
     onAction: (DetailPageAction) -> Unit,
     onNavigateBack: () -> Unit
@@ -76,11 +77,11 @@ private fun DetailScreen(
             }
         }, actions = {
             val s = state.value
-            if (s is DetailPageState.Loading) {
+            if (s is DetailPageUiState.Loading) {
                 Row {
 
                 }
-            } else if (s is DetailPageState.EditMode && s.locked) {
+            } else if (s is DetailPageUiState.EditMode && s.locked) {
                 IconButton(onClick = {
                     onAction(DetailPageAction.UnlockSecret(cipherManager))
                 }) {
@@ -94,9 +95,9 @@ private fun DetailScreen(
                 }
             }
 
-            if (s is DetailPageState.EditMode && !s.locked) {
+            if (s is DetailPageUiState.EditMode && !s.locked) {
                 IconButton(onClick = {
-                    onAction(DetailPageAction.OnDeleteClick(cipherManager))
+                    onAction(DetailPageAction.OnDeleteClick)
                 }) {
                     Icon(Icons.Default.Delete, "Delete")
                 }
@@ -114,10 +115,10 @@ private fun DetailScreen(
 }
 
 @Composable
-private fun Title(state: DetailPageState, onAction: (DetailPageAction) -> Unit) {
+private fun Title(state: DetailPageUiState, onAction: (DetailPageAction) -> Unit) {
     when (state) {
-        DetailPageState.Loading -> return
-        is DetailPageState.EditMode -> {
+        DetailPageUiState.Loading -> return
+        is DetailPageUiState.EditMode -> {
             TextField(
                 state.title,
                 onValueChange = { s ->
@@ -130,7 +131,7 @@ private fun Title(state: DetailPageState, onAction: (DetailPageAction) -> Unit) 
             )
         }
 
-        is DetailPageState.NewEntry -> {
+        is DetailPageUiState.NewEntry -> {
             TextField(
                 state.title,
                 onValueChange = { s ->
@@ -147,11 +148,11 @@ private fun Title(state: DetailPageState, onAction: (DetailPageAction) -> Unit) 
 
 @Composable
 private fun Body(
-    state: DetailPageState, onAction: (DetailPageAction) -> Unit
+    state: DetailPageUiState, onAction: (DetailPageAction) -> Unit
 ) {
     when (state) {
-        DetailPageState.Loading -> return
-        is DetailPageState.EditMode -> {
+        DetailPageUiState.Loading -> return
+        is DetailPageUiState.EditMode -> {
             TextField(
                 state.body.ifEmpty { if (state.locked) "*******" else "" },
                 onValueChange = { s ->
@@ -176,7 +177,7 @@ private fun Body(
                 })
         }
 
-        is DetailPageState.NewEntry -> {
+        is DetailPageUiState.NewEntry -> {
             TextField(
                 state.body,
                 onValueChange = { s ->
@@ -217,11 +218,15 @@ private fun DetailPagePreview() {
         ): Result<ByteArray> {
             TODO("Not yet implemented")
         }
+
+        override suspend fun canAuthenticate(): CanAuthenticate {
+            TODO("Not yet implemented")
+        }
     }
 
     val state = remember {
         derivedStateOf {
-            DetailPageState.NewEntry(
+            DetailPageUiState.NewEntry(
                 "Hello world", "happy world", true, true, isSubmitSuccessful = false
             )
         }

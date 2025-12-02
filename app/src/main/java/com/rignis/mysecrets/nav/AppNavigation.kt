@@ -28,7 +28,6 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     NavHost(navController, AppDestination.Home.route) {
         composable(AppDestination.Home.route) {
             val viewModel: HomeViewModel = koinViewModel()
-            val state = viewModel.state.collectAsStateWithLifecycle()
             HomeScreenDrawer(navigateToSetting = {
                 navController.navigate(AppDestination.Setting.route)
             }, navigateToAbout = {
@@ -37,7 +36,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
             }) { modifier, openDrawer ->
                 HomeRoute(
-                    state, viewModel::onAction, navigateToAddSecret = {
+                    viewModel, navigateToAddSecret = {
                     navController.navigate("detail")
                 }, { id ->
                     navController.navigate("detail?id=$id")

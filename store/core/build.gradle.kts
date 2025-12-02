@@ -43,6 +43,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation(project(":store:api"))
+    implementation(project(":common"))
 
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)

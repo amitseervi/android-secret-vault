@@ -12,7 +12,7 @@ class SettingsRepositoryImpl(private val databaseFactory: DataStoreFactory) : Se
         get() = databaseFactory.db.userSettingDao().getUserSetting(UserSettingKey.PREFERRED_THEME)
             .map { it?.let { UserThemePreference.valueOf(it.value) } ?: UserThemePreference.SYSTEM }
 
-    override fun updateTheme(themePref: UserThemePreference) {
+    override suspend fun updateTheme(themePref: UserThemePreference) {
         databaseFactory.db.userSettingDao()
             .insert(UserSetting(UserSettingKey.PREFERRED_THEME, themePref.name))
     }

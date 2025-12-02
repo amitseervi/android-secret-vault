@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface UserSettingDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(userSettings: UserSetting)
+    suspend fun insert(userSettings: UserSetting)
 
     @Query("SELECT * FROM user_setting WHERE `key` = :key LIMIT 1")
     fun getUserSetting(key: String): Flow<UserSetting?>
