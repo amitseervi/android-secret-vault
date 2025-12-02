@@ -7,6 +7,7 @@ import com.rignis.core.ui.routes.detail.ClipBoardHandler
 import com.rignis.store.api.DataStore
 import com.rignis.store.api.EncryptedDataEntry
 import com.rignis.store.api.EncryptedDataItem
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -51,6 +52,8 @@ sealed interface DetailPageAction {
 
     class UnlockSecret(val cipherManager: CipherManager) : DetailPageAction
     class OnSubmitClick(val cipherManager: CipherManager) : DetailPageAction
+
+    class OnDeleteClick(val cipherManager: CipherManager) : DetailPageAction
 }
 
 class DetailViewModel(
@@ -130,6 +133,32 @@ class DetailViewModel(
 
             is DetailPageAction.CopySecret -> {
                 copySecret(e.cipherManager)
+            }
+
+            is DetailPageAction.OnDeleteClick -> {
+                deleteSecret(e.cipherManager)
+            }
+        }
+    }
+
+    private fun deleteSecret(cipherManager: CipherManager) {
+        viewModelScope.launch {
+            encryptedDataItem?.let { data ->
+                val s = _state.value
+                if (s !is DetailPageState.EditMode || s.locked) {
+                    return@let
+                }
+                with(Dispatchers.IO) {
+                    dataStore.deleteDataById(data.id)
+                }
+                _state.update { currentState ->
+                    when (currentState) {
+                        is DetailPageState.EditMode -> currentState.copy(isSubmitSuccessful = true)
+                        DetailPageState.Loading -> currentState
+                        is DetailPageState.NewEntry -> currentState.copy(isSubmitSuccessful = true)
+                    }
+                }
+
             }
         }
     }

@@ -100,7 +100,7 @@ fun ThemeOption(
         RadioButton(
             selected = selected, onClick = { onSelect(theme) })
         Spacer(Modifier.width(12.dp))
-        Text(theme.name, style = MaterialTheme.typography.bodyLarge)
+        Text(theme.label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

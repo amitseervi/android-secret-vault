@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
@@ -92,6 +93,14 @@ private fun DetailScreen(
                     Icon(Icons.Default.Done, "Save Changes")
                 }
             }
+
+            if (s is DetailPageState.EditMode && !s.locked) {
+                IconButton(onClick = {
+                    onAction(DetailPageAction.OnDeleteClick(cipherManager))
+                }) {
+                    Icon(Icons.Default.Delete, "Delete")
+                }
+            }
         })
     }) { innerPadding ->
         Column(
@@ -144,7 +153,7 @@ private fun Body(
         DetailPageState.Loading -> return
         is DetailPageState.EditMode -> {
             TextField(
-                state.body.ifEmpty { "*******" },
+                state.body.ifEmpty { if (state.locked) "*******" else "" },
                 onValueChange = { s ->
                     onAction(DetailPageAction.UpdateModifiedBody(s))
                 },
