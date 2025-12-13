@@ -1,0 +1,13 @@
+{
+  "apphosting": {
+    "backendId": "secret-vault-web",
+    "rootDir": "/",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "functions"
+    ]
+  }
+}
