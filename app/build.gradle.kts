@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.rignisCommonAndroidPlugin)
     alias(libs.plugins.licences)
+    alias(libs.plugins.google.service)
+    alias(libs.plugins.google.crashlytics)
 }
 
 android {
@@ -81,11 +83,16 @@ dependencies {
     implementation(libs.koin.compose.viewmodel)
     implementation(libs.koin.compose.viewmodel.navigation)
 
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+
     implementation(project(":auth:domain"))
     implementation(project(":auth:data"))
     implementation(project(":core:ui"))
     implementation(project(":common"))
     implementation(project(":store:api"))
     implementation(project(":store:core"))
+    implementation(project(":analytics:api"))
+    implementation(project(":analytics:core"))
 
 }

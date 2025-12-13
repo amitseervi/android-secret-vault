@@ -35,11 +35,15 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
             }) { modifier, openDrawer ->
                 HomeRoute(
-                    viewModel, navigateToAddSecret = {
-                    navController.navigate("detail")
-                }, { id ->
-                    navController.navigate("detail?id=$id")
-                }, openDrawer
+                    viewModel,
+                    navigateToAddSecret = {
+                        navController.navigate("detail")
+                    },
+                    { id ->
+                        navController.navigate("detail?id=$id")
+                    },
+                    openDrawer,
+                    analytics = koinInject(),
                 )
             }
         }
@@ -62,18 +66,18 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val cipherManager: CipherManager = koinInject<CipherManager>()
             DetailRoute(viewModel, cipherManager, viewModel::onAction, onNavigateBack = {
                 navController.navigateUp()
-            })
+            }, koinInject())
         }
 
         composable(AppDestination.About.route) {
-            AboutRoute({ navController.navigateUp() }, koinInject())
+            AboutRoute({ navController.navigateUp() }, koinInject(), koinInject())
         }
 
         composable(AppDestination.Setting.route) {
             val settingViewModel: SettingsViewModel = koinViewModel()
-            SettingsRoute(settingViewModel) {
+            SettingsRoute(settingViewModel, {
                 navController.navigateUp()
-            }
+            }, koinInject())
         }
     }
 }

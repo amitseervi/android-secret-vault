@@ -7,4 +7,6 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.rignisCommonAndroidPlugin) apply false
     alias(libs.plugins.licences) apply false
+    alias(libs.plugins.google.service) apply false
+    alias(libs.plugins.google.crashlytics) apply false
 }

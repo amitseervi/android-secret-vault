@@ -35,9 +35,11 @@ import com.rignis.auth.domain.CanAuthenticate
 import com.rignis.auth.domain.CipherManager
 import com.rignis.auth.domain.EncryptedData
 import com.rignis.core.ui.R
+import com.rignis.core.ui.analytics.TrackScreen
 import com.rignis.core.ui.viewmodels.detail.DetailPageAction
 import com.rignis.core.ui.viewmodels.detail.DetailPageUiState
 import com.rignis.core.ui.viewmodels.detail.DetailViewModel
+import com.rignis.mysecret.analytics.api.Analytics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,8 +47,10 @@ fun DetailRoute(
     viewModel: DetailViewModel,
     cipherManager: CipherManager,
     onAction: (DetailPageAction) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    analytics: Analytics
 ) {
+    TrackScreen(analytics, "Detail")
     val state = viewModel.state.collectAsStateWithLifecycle()
     val exit = when (val v = state.value) {
         is DetailPageUiState.EditMode -> v.isSubmitSuccessful

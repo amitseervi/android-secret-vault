@@ -45,9 +45,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rignis.auth.domain.CanAuthenticate
 import com.rignis.core.ui.R
+import com.rignis.core.ui.analytics.TrackScreen
 import com.rignis.core.ui.viewmodels.home.HomePageEvent
 import com.rignis.core.ui.viewmodels.home.HomePageState
 import com.rignis.core.ui.viewmodels.home.HomeViewModel
+import com.rignis.mysecret.analytics.api.Analytics
+import com.rignis.mysecret.analytics.api.AnalyticsEvent
+import com.rignis.mysecret.analytics.api.AnalyticsParam
 import com.rignis.store.api.EncryptedDataRef
 
 @Composable
@@ -55,8 +59,10 @@ fun HomeRoute(
     viewModel: HomeViewModel,
     navigateToAddSecret: () -> Unit,
     openDetailPage: (id: String) -> Unit,
-    openDrawer: () -> Unit
+    openDrawer: () -> Unit,
+    analytics: Analytics
 ) {
+    TrackScreen(analytics, "Home")
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

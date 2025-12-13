@@ -29,10 +29,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.rignis.core.ui.R
+import com.rignis.core.ui.analytics.TrackScreen
+import com.rignis.mysecret.analytics.api.Analytics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutRoute(onBack: () -> Unit = {}, versionDetailProvider: VersionDetailProvider) {
+fun AboutRoute(onBack: () -> Unit = {}, versionDetailProvider: VersionDetailProvider,analytics: Analytics) {
+    TrackScreen(analytics, "About")
     val scrollState = rememberScrollState()
     Scaffold(
         topBar = {

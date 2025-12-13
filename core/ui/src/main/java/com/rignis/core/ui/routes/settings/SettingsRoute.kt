@@ -29,16 +29,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rignis.core.ui.R
+import com.rignis.core.ui.analytics.TrackScreen
 import com.rignis.core.ui.viewmodels.settings.SettingPageEvent
 import com.rignis.core.ui.viewmodels.settings.SettingPageUiState
 import com.rignis.core.ui.viewmodels.settings.SettingsViewModel
+import com.rignis.mysecret.analytics.api.Analytics
 import com.rignis.store.api.UserThemePreference
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsRoute(
-    viewModel: SettingsViewModel, onBack: () -> Unit = {}
+    viewModel: SettingsViewModel, onBack: () -> Unit = {}, analytics: Analytics
 ) {
+    TrackScreen(analytics, "Setting")
     val onThemeSelect: (UserThemePreference) -> Unit = {
         viewModel.onAction(SettingPageEvent.OnThemeSelected(it))
     }
