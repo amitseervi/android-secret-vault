@@ -168,7 +168,7 @@ fun BiometricEnrollButton() {
     val context = LocalContext.current
     Button(onClick = {
         try {
-            val intent = Intent(Settings.ACTION_FINGERPRINT_ENROLL)
+            val intent = Intent(Settings.ACTION_BIOMETRIC_ENROLL)
             context.startActivity(intent)
         } catch (e: ActivityNotFoundException) {
             context.startActivity(Intent(Settings.ACTION_SETTINGS))

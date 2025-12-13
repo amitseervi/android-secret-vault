@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +40,7 @@ fun AboutRoute(onBack: () -> Unit = {}, versionDetailProvider: VersionDetailProv
                 title = { Text(stringResource(R.string.about_secret_vault)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back")
                     }
                 })
         }) { padding ->
@@ -64,7 +66,7 @@ fun AboutRoute(onBack: () -> Unit = {}, versionDetailProvider: VersionDetailProv
             )
 
             Spacer(Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(Modifier.height(24.dp))
 
             SectionTitle(stringResource(R.string.how_data_is_protected))
@@ -75,7 +77,7 @@ fun AboutRoute(onBack: () -> Unit = {}, versionDetailProvider: VersionDetailProv
             BulletPoint(stringResource(R.string.about_page_b4))
 
             Spacer(Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(Modifier.height(24.dp))
 
             SectionTitle(stringResource(R.string.privacy_first))
