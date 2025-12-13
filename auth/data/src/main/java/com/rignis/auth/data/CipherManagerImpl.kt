@@ -82,15 +82,18 @@ class CipherManagerImpl(
         body: ByteArray,
         iv: ByteArray,
     ): Result<ByteArray> {
-        return callbackToSuspend { onSuccess, onError ->
-            decryptDataInternal(body, iv, { decrypted ->
-                onSuccess(Result.success(decrypted))
-            }, { exception ->
-                onError(exception)
-            })
+        return try {
+            callbackToSuspend { onSuccess, onError ->
+                decryptDataInternal(body, iv, { decrypted ->
+                    onSuccess(Result.success(decrypted))
+                }, { exception ->
+                    onError(exception)
+                })
+            }
+        } catch (e: Exception) {
+            return Result.failure(e)
         }
     }
-
     private fun decryptDataInternal(
         body: ByteArray, iv: ByteArray, onSuccess: (ByteArray) -> Unit, onError: (Throwable) -> Unit
     ) {
@@ -112,6 +115,7 @@ class CipherManagerImpl(
                 }
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    System.out.println("amittest -- on authentication error");
                     onError(RuntimeException("$errorCode - $errString"))
                 }
             })
