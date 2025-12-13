@@ -1,6 +1,5 @@
 package com.rignis.core.ui.routes.about
 
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,20 +23,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.rignis.core.ui.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AboutRoute(onBack: () -> Unit = {}) {
+fun AboutRoute(onBack: () -> Unit = {}, versionDetailProvider: VersionDetailProvider) {
     val scrollState = rememberScrollState()
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("About Secret Vault") }, navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                }
-            })
+            TopAppBar(
+                title = { Text(stringResource(R.string.about_secret_vault)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                })
         }) { padding ->
         Column(
             modifier = Modifier
@@ -48,7 +51,7 @@ fun AboutRoute(onBack: () -> Unit = {}) {
         ) {
 
             Text(
-                text = "Secret Vault",
+                text = stringResource(R.string.about_page_title),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -56,37 +59,36 @@ fun AboutRoute(onBack: () -> Unit = {}) {
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = """
-Secret Vault securely stores your private information using industry-standard encryption. Your secrets remain encrypted at all times and can only be viewed after biometric authentication.
-                """.trimIndent(), style = MaterialTheme.typography.bodyLarge
+                text = stringResource(R.string.about_page_description).trimIndent(),
+                style = MaterialTheme.typography.bodyLarge
             )
 
             Spacer(Modifier.height(24.dp))
             Divider()
             Spacer(Modifier.height(24.dp))
 
-            SectionTitle("How your data is protected")
+            SectionTitle(stringResource(R.string.how_data_is_protected))
 
-            BulletPoint("AES encryption is used to securely protect all stored secrets.")
-            BulletPoint("Encrypted data is stored locally using Room database.")
-            BulletPoint("Your decryption key is stored inside AndroidKeyStore hardware, the most secure place on your device.")
-            BulletPoint("Only your biometric authentication can unlock your secret information.")
+            BulletPoint(stringResource(R.string.about_page_b1))
+            BulletPoint(stringResource(R.string.about_page_b2))
+            BulletPoint(stringResource(R.string.about_page_b3))
+            BulletPoint(stringResource(R.string.about_page_b4))
 
             Spacer(Modifier.height(24.dp))
             Divider()
             Spacer(Modifier.height(24.dp))
 
-            SectionTitle("Privacy first")
+            SectionTitle(stringResource(R.string.privacy_first))
 
-            BulletPoint("Your secrets never leave your device.")
-            BulletPoint("No secret data is logged, tracked, or sent to servers.")
-            BulletPoint("Even after authentication, your decrypted data is never stored, logged, or shared by Secret Vault.")
-            BulletPoint("You control what you store and when you delete it.")
+            BulletPoint(stringResource(R.string.privacy_b1))
+            BulletPoint(stringResource(R.string.privacy_b2))
+            BulletPoint(stringResource(R.string.privacy_b3))
+            BulletPoint(stringResource(R.string.privacy_b4))
 
             Spacer(Modifier.height(40.dp))
 
             Text(
-                text = "Version 1.0.0",
+                text = stringResource(R.string.version, versionDetailProvider.versionName),
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -106,7 +108,7 @@ fun SectionTitle(text: String) {
 @Composable
 fun BulletPoint(text: String) {
     Row(modifier = Modifier.padding(bottom = 8.dp)) {
-        Text("• ", style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(R.string.bullet_point), style = MaterialTheme.typography.bodyLarge)
         Text(text, style = MaterialTheme.typography.bodyLarge)
     }
 }

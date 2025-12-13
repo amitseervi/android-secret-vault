@@ -3,7 +3,6 @@ package com.rignis.mysecrets.nav
 import android.app.Activity
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -67,7 +66,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
 
         composable(AppDestination.About.route) {
-            AboutRoute { navController.navigateUp() }
+            AboutRoute({ navController.navigateUp() }, koinInject())
         }
 
         composable(AppDestination.Setting.route) {

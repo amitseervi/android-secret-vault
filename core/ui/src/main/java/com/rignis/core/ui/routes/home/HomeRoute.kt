@@ -115,11 +115,11 @@ private fun HomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            Text("Add security to your device to use this application")
+                            Text(stringResource(R.string.enroll_message))
                             Spacer(modifier = Modifier.height(8.dp))
                             BiometricEnrollButton()
                         } else {
-                            Text("Can not use application as Device is not secured by biometric or credential")
+                            Text(stringResource(R.string.biometric_not_available))
                         }
                     }
                 }
@@ -158,7 +158,7 @@ private fun HomeScreen(
 @Composable
 private fun HomePageEmpty(modifier: Modifier) {
     return Box(modifier = modifier.fillMaxSize()) {
-        Text("Empty", modifier = Modifier.align(Alignment.Center))
+        Text(stringResource(R.string.no_secret_saved), modifier = Modifier.align(Alignment.Center))
     }
 }
 
@@ -174,7 +174,7 @@ fun BiometricEnrollButton() {
             context.startActivity(Intent(Settings.ACTION_SETTINGS))
         }
     }) {
-        Text("Enroll Biometrics")
+        Text(stringResource(R.string.enroll_biometrics))
     }
 }
 

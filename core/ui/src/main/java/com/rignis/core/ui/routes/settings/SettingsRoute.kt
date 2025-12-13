@@ -24,9 +24,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rignis.core.ui.R
 import com.rignis.core.ui.viewmodels.settings.SettingPageEvent
 import com.rignis.core.ui.viewmodels.settings.SettingPageUiState
 import com.rignis.core.ui.viewmodels.settings.SettingsViewModel
@@ -44,7 +46,7 @@ fun SettingsRoute(
     val stateValue = state.value
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Settings") }, navigationIcon = {
+            TopAppBar(title = { Text(stringResource(R.string.settings)) }, navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back")
                 }
@@ -60,7 +62,7 @@ fun SettingsRoute(
         ) {
 
             Text(
-                text = "Choose App Theme",
+                text = stringResource(R.string.choose_app_theme),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -100,7 +102,7 @@ fun ThemeOption(
         RadioButton(
             selected = selected, onClick = { onSelect(theme) })
         Spacer(Modifier.width(12.dp))
-        Text(theme.label, style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(theme.label), style = MaterialTheme.typography.bodyLarge)
     }
 }
 

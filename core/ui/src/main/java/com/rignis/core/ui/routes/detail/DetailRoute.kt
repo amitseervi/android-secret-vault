@@ -126,7 +126,7 @@ private fun Title(state: DetailPageUiState, onAction: (DetailPageAction) -> Unit
                 },
                 enabled = !state.locked, modifier = Modifier.fillMaxWidth(),
                 label = {
-                    Text("title")
+                    Text(stringResource(R.string.title))
                 },
             )
         }
@@ -139,7 +139,7 @@ private fun Title(state: DetailPageUiState, onAction: (DetailPageAction) -> Unit
                 },
                 enabled = true, modifier = Modifier.fillMaxWidth(),
                 label = {
-                    Text("title")
+                    Text(stringResource(R.string.title))
                 },
             )
         }
@@ -159,7 +159,7 @@ private fun Body(
                     onAction(DetailPageAction.UpdateModifiedBody(s))
                 },
                 label = {
-                    Text("secret")
+                    Text(stringResource(R.string.secret))
                 },
                 enabled = !state.locked,
                 modifier = Modifier.fillMaxWidth(),
@@ -184,7 +184,7 @@ private fun Body(
                     onAction(DetailPageAction.UpdateModifiedBody(s))
                 },
                 label = {
-                    Text("secret")
+                    Text(stringResource(R.string.secret))
                 },
                 enabled = true,
                 modifier = Modifier.fillMaxWidth(),

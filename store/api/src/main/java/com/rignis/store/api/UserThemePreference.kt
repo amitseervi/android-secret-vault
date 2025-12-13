@@ -1,5 +1,7 @@
 package com.rignis.store.api
 
-enum class UserThemePreference(val label: String) {
-    DARK("Dark"), LIGHT("Light"), SYSTEM("System Default")
+import androidx.annotation.StringRes
+
+enum class UserThemePreference(@param:StringRes val label: Int) {
+    DARK(R.string.dark), LIGHT(R.string.light), SYSTEM(R.string.system_default)
 }

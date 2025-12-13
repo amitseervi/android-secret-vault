@@ -1,4 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="top_app_bar_title">Secret Vault</string>
+    <string name="settings">Settings</string>
+    <string name="about">About</string>
+    <string name="choose_app_theme">Choose App Theme</string>
+    <string name="no_secret_saved">No Secret saved</string>
+    <string name="enroll_biometrics">Enroll Biometrics</string>
+    <string name="enroll_message">Add security to your device to use this application</string>
+    <string name="biometric_not_available">Can not use application as Device is not secured by biometric or credential</string>
+    <string name="secret_copied">Secret Copied!</string>
+    <string name="title">title</string>
+    <string name="secret">Secret</string>
+    <string name="about_secret_vault">About Secret Vault</string>
+    <string name="about_page_title">Secret Vault</string>
+    <string name="about_page_description">"\nSecret Vault securely stores your private information using industry-standard encryption. Your secrets remain encrypted at all times and can only be viewed after biometric authentication.\n                "</string>
+    <string name="how_data_is_protected">How your data is protected</string>
+    <string name="about_page_b1">AES encryption is used to securely protect all stored secrets.</string>
+    <string name="about_page_b2">Encrypted data is stored locally using Room database.</string>
+    <string name="about_page_b3">Your decryption key is stored inside AndroidKeyStore hardware, the most secure place on your device.</string>
+    <string name="about_page_b4">Only your biometric authentication can unlock your secret information.</string>
+    <string name="privacy_first">Privacy first</string>
+    <string name="privacy_b1">Your secrets never leave your device.</string>
+    <string name="privacy_b2">No secret data is logged, tracked, or sent to servers.</string>
+    <string name="privacy_b3">Even after authentication, your decrypted data is never stored, logged, or shared by Secret Vault.</string>
+    <string name="privacy_b4">You control what you store and when you delete it.</string>
+    <string name="version">Version %s</string>
+    <string name="bullet_point">"• "</string>
 </resources>

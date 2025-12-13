@@ -12,7 +12,9 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.rignis.core.ui.R
 import kotlinx.coroutines.launch
 
 @Composable
@@ -28,7 +30,13 @@ fun HomeScreenDrawer(
     ModalNavigationDrawer(
         drawerState = drawerState, drawerContent = {
             ModalDrawerSheet {
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(true) {
+                        coroutineScope.launch {
+                            drawerState.close()
+                        }
+                    }) {
                     Text("Home", modifier = Modifier.padding(16.dp))
                 }
                 Row(modifier = Modifier
@@ -37,7 +45,7 @@ fun HomeScreenDrawer(
                         navigateToSetting()
                     }) {
                     Text(
-                        "Settings", modifier = Modifier.padding(16.dp)
+                        stringResource(R.string.settings), modifier = Modifier.padding(16.dp)
                     )
                 }
                 Row(modifier = Modifier
@@ -46,7 +54,7 @@ fun HomeScreenDrawer(
                         navigateToAbout()
                     }) {
                     Text(
-                        "About", modifier = Modifier.padding(16.dp)
+                        stringResource(R.string.about), modifier = Modifier.padding(16.dp)
                     )
                 }
             }
