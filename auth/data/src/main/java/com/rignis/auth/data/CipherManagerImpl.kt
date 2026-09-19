@@ -49,13 +49,23 @@ class CipherManagerImpl(
             )
             val specBuilder = KeyGenParameterSpec.Builder(
                 KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-            ).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setUserAuthenticationRequired(false)
+            ).setBlockModes(KeyProperties.BLOCK_MODE_GCM)
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                specBuilder.setUserAuthenticationParameters(0, KeyProperties.AUTH_BIOMETRIC_STRONG)
+            if (BuildConfig.DEBUG) {
+                // Debug builds skip biometric enforcement on the key itself so
+                // automated tools can exercise the unlock/view flow without a
+                // real fingerprint. Never true for release builds.
+                specBuilder.setUserAuthenticationRequired(false)
             } else {
-                specBuilder.setUserAuthenticationValidityDurationSeconds(0)
+                specBuilder.setUserAuthenticationRequired(true)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    specBuilder.setUserAuthenticationParameters(
+                        0, KeyProperties.AUTH_BIOMETRIC_STRONG
+                    )
+                } else {
+                    specBuilder.setUserAuthenticationValidityDurationSeconds(0)
+                }
             }
 
             keyGen.init(specBuilder.build())
@@ -82,6 +92,17 @@ class CipherManagerImpl(
         body: ByteArray,
         iv: ByteArray,
     ): Result<ByteArray> {
+        if (BuildConfig.DEBUG) {
+            // The key generated for debug builds has no biometric requirement,
+            // so decryption can happen directly without a BiometricPrompt.
+            return try {
+                val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
+                cipher.init(Cipher.DECRYPT_MODE, getSecretKey(), GCMParameterSpec(128, iv))
+                Result.success(cipher.doFinal(body))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
         return try {
             callbackToSuspend { onSuccess, onError ->
                 decryptDataInternal(body, iv, { decrypted ->

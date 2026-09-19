@@ -1,31 +1,49 @@
 package com.rignis.core.ui.routes.detail
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
@@ -72,142 +90,213 @@ private fun DetailScreen(
     onAction: (DetailPageAction) -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    val s = state.value
     Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
         TopAppBar(title = {
-            Text(stringResource(R.string.top_app_bar_title))
+            Text(
+                when (s) {
+                    DetailPageUiState.Loading -> stringResource(R.string.top_app_bar_title)
+                    is DetailPageUiState.NewEntry -> stringResource(R.string.new_secret)
+                    is DetailPageUiState.EditMode -> if (s.locked) {
+                        stringResource(R.string.view_secret)
+                    } else {
+                        stringResource(R.string.edit_secret)
+                    }
+                }
+            )
         }, navigationIcon = {
             IconButton(onClick = onNavigateBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back Navigation")
             }
-        }, actions = {
-            val s = state.value
-            if (s is DetailPageUiState.Loading) {
-                Row {
+        }, colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ), actions = {
+            when {
+                s is DetailPageUiState.NewEntry -> {
+                    IconButton(
+                        onClick = { onAction(DetailPageAction.OnSubmitClick(cipherManager)) },
+                        enabled = s.submitEnabled
+                    ) {
+                        Icon(Icons.Default.Done, stringResource(R.string.save))
+                    }
+                }
 
+                s is DetailPageUiState.EditMode && !s.locked -> {
+                    IconButton(
+                        onClick = { onAction(DetailPageAction.OnSubmitClick(cipherManager)) },
+                        enabled = s.saveEnabled
+                    ) {
+                        Icon(Icons.Default.Done, stringResource(R.string.save))
+                    }
+                    IconButton(onClick = { onAction(DetailPageAction.OnDeleteClick) }) {
+                        Icon(Icons.Default.Delete, stringResource(R.string.delete))
+                    }
                 }
-            } else if (s is DetailPageUiState.EditMode && s.locked) {
-                IconButton(onClick = {
-                    onAction(DetailPageAction.UnlockSecret(cipherManager))
-                }) {
-                    Icon(Icons.Default.Lock, "Back Navigation")
-                }
-            } else {
-                IconButton(onClick = {
-                    onAction(DetailPageAction.OnSubmitClick(cipherManager))
-                }) {
-                    Icon(Icons.Default.Done, "Save Changes")
-                }
-            }
 
-            if (s is DetailPageUiState.EditMode && !s.locked) {
-                IconButton(onClick = {
-                    onAction(DetailPageAction.OnDeleteClick)
-                }) {
-                    Icon(Icons.Default.Delete, "Delete")
-                }
+                else -> Unit
             }
         })
     }) { innerPadding ->
+        when (s) {
+            DetailPageUiState.Loading -> LoadingContent(Modifier.padding(innerPadding))
+
+            is DetailPageUiState.NewEntry -> {
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    EditableTitleField(s.title) { onAction(DetailPageAction.UpdateModifiedTitle(it)) }
+                    EditableSecretField(
+                        body = s.body,
+                        secretVisible = s.secretVisible,
+                        onBodyChange = { onAction(DetailPageAction.UpdateModifiedBody(it)) },
+                        onToggleVisibility = { onAction(DetailPageAction.ToggleVisibilityOfSecret) }
+                    )
+                }
+            }
+
+            is DetailPageUiState.EditMode -> {
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (s.locked) {
+                        Text(
+                            text = s.title,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        LockedSecretCard(onUnlock = { onAction(DetailPageAction.UnlockSecret(cipherManager)) })
+                    } else {
+                        EditableTitleField(s.title) { onAction(DetailPageAction.UpdateModifiedTitle(it)) }
+                        EditableSecretField(
+                            body = s.body,
+                            secretVisible = s.secretVisible,
+                            onBodyChange = { onAction(DetailPageAction.UpdateModifiedBody(it)) },
+                            onToggleVisibility = { onAction(DetailPageAction.ToggleVisibilityOfSecret) }
+                        )
+                        OutlinedButton(
+                            onClick = { onAction(DetailPageAction.CopySecret(cipherManager)) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Outlined.ContentCopy, contentDescription = null)
+                            Text(
+                                text = stringResource(R.string.copy_secret),
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LoadingContent(modifier: Modifier) {
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun LockedSecretCard(onUnlock: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
         Column(
-            modifier = Modifier.padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Title(state.value, onAction)
-            Body(state.value, onAction)
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Spacer(Modifier.size(16.dp))
+            Text(
+                text = stringResource(R.string.secret_locked_title),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.size(4.dp))
+            Text(
+                text = stringResource(R.string.secret_locked_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.size(20.dp))
+            Button(onClick = onUnlock, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.Lock, contentDescription = null)
+                Text(
+                    text = stringResource(R.string.unlock),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun Title(state: DetailPageUiState, onAction: (DetailPageAction) -> Unit) {
-    when (state) {
-        DetailPageUiState.Loading -> return
-        is DetailPageUiState.EditMode -> {
-            TextField(
-                state.title,
-                onValueChange = { s ->
-                    onAction(DetailPageAction.UpdateModifiedTitle(s))
-                },
-                enabled = !state.locked, modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text(stringResource(R.string.title))
-                },
-            )
-        }
-
-        is DetailPageUiState.NewEntry -> {
-            TextField(
-                state.title,
-                onValueChange = { s ->
-                    onAction(DetailPageAction.UpdateModifiedTitle(s))
-                },
-                enabled = true, modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text(stringResource(R.string.title))
-                },
-            )
-        }
-    }
+private fun EditableTitleField(title: String, onChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = title,
+        onValueChange = onChange,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+        label = { Text(stringResource(R.string.title)) },
+    )
 }
 
 @Composable
-private fun Body(
-    state: DetailPageUiState, onAction: (DetailPageAction) -> Unit
+private fun EditableSecretField(
+    body: String,
+    secretVisible: Boolean,
+    onBodyChange: (String) -> Unit,
+    onToggleVisibility: () -> Unit
 ) {
-    when (state) {
-        DetailPageUiState.Loading -> return
-        is DetailPageUiState.EditMode -> {
-            TextField(
-                state.body.ifEmpty { if (state.locked) "*******" else "" },
-                onValueChange = { s ->
-                    onAction(DetailPageAction.UpdateModifiedBody(s))
-                },
-                label = {
-                    Text(stringResource(R.string.secret))
-                },
-                enabled = !state.locked,
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (!state.secretVisible || state.locked) PasswordVisualTransformation() else VisualTransformation.None,
-                trailingIcon = {
-                    IconButton(onClick = {
-                        onAction(DetailPageAction.ToggleVisibilityOfSecret)
-                    }, enabled = !state.locked) {
-                        if (state.secretVisible) {
-                            Icon(Icons.Default.VisibilityOff, "Hide Secret")
-                        } else {
-                            Icon(Icons.Default.Visibility, "Show Secret")
-                        }
-                    }
-                })
+    OutlinedTextField(
+        value = body,
+        onValueChange = onBodyChange,
+        label = { Text(stringResource(R.string.secret)) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        leadingIcon = { Icon(Icons.Outlined.Key, contentDescription = null) },
+        visualTransformation = if (!secretVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        trailingIcon = {
+            IconButton(onClick = onToggleVisibility) {
+                if (secretVisible) {
+                    Icon(Icons.Default.VisibilityOff, "Hide Secret")
+                } else {
+                    Icon(Icons.Default.Visibility, "Show Secret")
+                }
+            }
         }
-
-        is DetailPageUiState.NewEntry -> {
-            TextField(
-                state.body,
-                onValueChange = { s ->
-                    onAction(DetailPageAction.UpdateModifiedBody(s))
-                },
-                label = {
-                    Text(stringResource(R.string.secret))
-                },
-                enabled = true,
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (!state.secretVisible) PasswordVisualTransformation() else VisualTransformation.None,
-                trailingIcon = {
-                    IconButton(onClick = {
-                        onAction(DetailPageAction.ToggleVisibilityOfSecret)
-                    }) {
-                        if (state.secretVisible) {
-                            Icon(Icons.Default.VisibilityOff, "Hide Secret")
-                        } else {
-                            Icon(Icons.Default.Visibility, "Show Secret")
-                        }
-                    }
-                })
-        }
-    }
+    )
 }
-
 
 @Preview
 @Composable
@@ -237,4 +326,33 @@ private fun DetailPagePreview() {
     }
     DetailScreen(state, mockCipherManager, {}, {})
 
+}
+
+@Preview
+@Composable
+private fun DetailPageLockedPreview() {
+    val mockCipherManager = object : CipherManager {
+        override suspend fun encryptData(data: ByteArray): EncryptedData {
+            TODO("Not yet implemented")
+        }
+
+        override suspend fun decryptData(
+            body: ByteArray, iv: ByteArray
+        ): Result<ByteArray> {
+            TODO("Not yet implemented")
+        }
+
+        override suspend fun canAuthenticate(): CanAuthenticate {
+            TODO("Not yet implemented")
+        }
+    }
+
+    val state = remember {
+        derivedStateOf {
+            DetailPageUiState.EditMode(
+                "Wi-Fi password", "", secretVisible = false, locked = true, isSubmitSuccessful = false
+            )
+        }
+    }
+    DetailScreen(state, mockCipherManager, {}, {})
 }

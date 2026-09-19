@@ -271,8 +271,9 @@ fun StatusBarEffect(
 @Composable
 fun AppTheme(
     themePreference: UserThemePreference,
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true, content: @Composable() () -> Unit
+    // Dynamic color is available on Android 12+, but defaults to off so the app's
+    // designed brand palette shows consistently instead of a wallpaper-derived one.
+    dynamicColor: Boolean = false, content: @Composable() () -> Unit
 ) {
     val darkTheme =
         themePreference == UserThemePreference.DARK || (themePreference == UserThemePreference.SYSTEM && isSystemInDarkTheme())

@@ -2,6 +2,9 @@ package com.rignis.core.ui.viewmodels.settings
 
 import androidx.lifecycle.viewModelScope
 import com.rignis.core.base.BaseViewModel
+import com.rignis.mysecret.analytics.api.Analytics
+import com.rignis.mysecret.analytics.api.AnalyticsEvent
+import com.rignis.mysecret.analytics.api.AnalyticsParam
 import com.rignis.store.api.SettingsRepository
 import com.rignis.store.api.UserThemePreference
 import kotlinx.coroutines.Dispatchers
@@ -33,8 +36,9 @@ fun SettingPageState.toUiState(): SettingPageUiState {
     return SettingPageUiState.Success(theme)
 }
 
-class SettingsViewModel(private val settingsRepository: SettingsRepository) :
-    BaseViewModel<SettingPageUiState, SettingPageEvent>() {
+class SettingsViewModel(
+    private val settingsRepository: SettingsRepository, private val analytics: Analytics
+) : BaseViewModel<SettingPageUiState, SettingPageEvent>() {
     private val _state = MutableStateFlow<SettingPageState>(SettingPageState())
     override val state: StateFlow<SettingPageUiState>
         get() = _state.map { it.toUiState() }.stateIn(
@@ -56,6 +60,9 @@ class SettingsViewModel(private val settingsRepository: SettingsRepository) :
             is SettingPageEvent.OnThemeSelected -> {
                 viewModelScope.launch(Dispatchers.IO) {
                     settingsRepository.updateTheme(e.theme)
+                }
+                analytics.logEvent(AnalyticsEvent.ThemeChanged) {
+                    param(AnalyticsParam.ThemeValue, e.theme.name)
                 }
             }
         }

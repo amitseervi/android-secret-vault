@@ -4,6 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.rignis.auth.domain.CipherManager
 import com.rignis.core.base.BaseViewModel
 import com.rignis.core.ui.routes.detail.ClipBoardHandler
+import com.rignis.mysecret.analytics.api.Analytics
+import com.rignis.mysecret.analytics.api.AnalyticsEvent
 import com.rignis.store.api.DataStore
 import com.rignis.store.api.EncryptedDataEntry
 import com.rignis.store.api.EncryptedDataItem
@@ -84,7 +86,9 @@ private fun DetailViewModelState.toUiState(): DetailPageUiState {
 }
 
 class DetailViewModel(
-    private val dataStore: DataStore, private val clipBoardHandler: ClipBoardHandler
+    private val dataStore: DataStore,
+    private val clipBoardHandler: ClipBoardHandler,
+    private val analytics: Analytics
 ) : BaseViewModel<DetailPageUiState, DetailPageAction>() {
     companion object {
         private val initialUiPageState = DetailPageUiState.Loading
@@ -177,6 +181,7 @@ class DetailViewModel(
                 _state.update { currentState ->
                     currentState.copy(isSubmissionSuccessful = true)
                 }
+                analytics.logEvent(AnalyticsEvent.SecretDeleted) {}
 
             }
         }
@@ -190,6 +195,7 @@ class DetailViewModel(
                 )
                 if (result.isSuccess) {
                     clipBoardHandler.copyPassword(String(result.getOrThrow()))
+                    analytics.logEvent(AnalyticsEvent.SecretCopied) {}
                 }
             }
 
@@ -205,6 +211,7 @@ class DetailViewModel(
                         data.encryptedBody, data.initializationVector
                     )
                     if (cipherDecryptedResult.isSuccess) {
+                        analytics.logEvent(AnalyticsEvent.SecretUnlocked) {}
                         current.copy(
                             body = String(cipherDecryptedResult.getOrThrow()), isEditLocked = false
                         )
@@ -260,12 +267,14 @@ class DetailViewModel(
                             currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
                         )
                     )
+                    analytics.logEvent(AnalyticsEvent.SecretUpdated) {}
                 } else {
                     dataStore.insertItem(
                         EncryptedDataEntry(
                             currentState.title, encryptedBody.encryptedBody, encryptedBody.iv
                         )
                     )
+                    analytics.logEvent(AnalyticsEvent.SecretCreated) {}
                 }
                 _state.update { currentState ->
                     currentState.copy(isSubmissionSuccessful = true)

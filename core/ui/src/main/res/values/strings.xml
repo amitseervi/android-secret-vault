@@ -1,16 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="top_app_bar_title">Secret Vault</string>
+    <string name="home">Home</string>
     <string name="settings">Settings</string>
     <string name="about">About</string>
+    <string name="open_source_licenses">Open Source Licenses</string>
     <string name="choose_app_theme">Choose App Theme</string>
-    <string name="no_secret_saved">No Secret saved</string>
+    <string name="no_secret_saved">No secrets saved yet</string>
+    <string name="no_secret_saved_subtitle">Tap the + button to add your first secret</string>
+    <string name="add_secret">Add secret</string>
+    <string name="tap_to_view">Tap to view</string>
     <string name="enroll_biometrics">Enroll Biometrics</string>
     <string name="enroll_message">Add security to your device to use this application</string>
     <string name="biometric_not_available">Can not use application as Device is not secured by biometric or credential</string>
     <string name="secret_copied">Secret Copied!</string>
-    <string name="title">title</string>
+    <string name="title">Title</string>
     <string name="secret">Secret</string>
+    <string name="new_secret">New Secret</string>
+    <string name="view_secret">View Secret</string>
+    <string name="edit_secret">Edit Secret</string>
+    <string name="secret_locked_title">This secret is locked</string>
+    <string name="secret_locked_subtitle">Unlock with biometrics to view it</string>
+    <string name="unlock">Unlock</string>
+    <string name="copy_secret">Copy secret</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
     <string name="about_secret_vault">About Secret Vault</string>
     <string name="about_page_title">Secret Vault</string>
     <string name="about_page_description">"\nSecret Vault securely stores your private information using industry-standard encryption. Your secrets remain encrypted at all times and can only be viewed after biometric authentication.\n                "</string>

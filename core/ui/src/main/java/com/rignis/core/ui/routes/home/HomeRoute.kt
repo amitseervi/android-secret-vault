@@ -5,30 +5,38 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
@@ -37,6 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -99,7 +109,12 @@ private fun HomeScreen(
             IconButton(onClick = openDrawer) {
                 Icon(Icons.Default.Menu, "Drawer Menu")
             }
-        })
+        }, colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ))
     }, floatingActionButton = {
         if (state.value.canAuthenticate == CanAuthenticate.YES) {
             FloatingActionButton(navigateToAddSecret) {
@@ -116,16 +131,20 @@ private fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .padding(innerPadding)
-                            .fillMaxSize(),
+                            .fillMaxSize()
+                            .padding(horizontal = 32.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            Text(stringResource(R.string.enroll_message))
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(stringResource(R.string.enroll_message), textAlign = TextAlign.Center)
+                            Spacer(modifier = Modifier.height(16.dp))
                             BiometricEnrollButton()
                         } else {
-                            Text(stringResource(R.string.biometric_not_available))
+                            Text(
+                                stringResource(R.string.biometric_not_available),
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 }
@@ -134,11 +153,15 @@ private fun HomeScreen(
                     Column(
                         modifier = Modifier
                             .padding(innerPadding)
-                            .fillMaxSize(),
-                        verticalArrangement = Arrangement.SpaceAround,
+                            .fillMaxSize()
+                            .padding(horizontal = 32.dp),
+                        verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Can not use application as Device is not secured by biometric or credential")
+                        Text(
+                            text = stringResource(R.string.biometric_not_available),
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -164,7 +187,40 @@ private fun HomeScreen(
 @Composable
 private fun HomePageEmpty(modifier: Modifier) {
     return Box(modifier = modifier.fillMaxSize()) {
-        Text(stringResource(R.string.no_secret_saved), modifier = Modifier.align(Alignment.Center))
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.no_secret_saved),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.no_secret_saved_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -189,7 +245,7 @@ private fun HomePage(
     state: HomePageState.Loaded, modifier: Modifier, openDetailPage: (id: String) -> Unit
 ) {
     return LazyColumn(
-        modifier = modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(state.data.size, key = { position -> state.data[position].id }) { itemPosition ->
             val item = state.data[itemPosition]
@@ -200,15 +256,52 @@ private fun HomePage(
 
 @Composable
 private fun MyListItem(item: EncryptedDataRef, openDetailPage: (id: String) -> Unit) {
-    ListItem(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
-            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
-            .clickable {
-                openDetailPage(item.id)
-            }, headlineContent = {
-        Text(item.title)
-    })
+    Card(
+        onClick = { openDetailPage(item.id) },
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = stringResource(R.string.tap_to_view),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Preview

@@ -10,10 +10,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.BrightnessAuto
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,9 +28,11 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,7 +62,11 @@ fun SettingsRoute(
                 IconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = "Back")
                 }
-            })
+            }, colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ))
         }) { padding ->
 
         Column(
@@ -70,42 +83,55 @@ fun SettingsRoute(
                 fontWeight = FontWeight.SemiBold
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
-            ThemeOption(
-                theme = UserThemePreference.SYSTEM,
-                selected = stateValue is SettingPageUiState.Success && stateValue.theme == UserThemePreference.SYSTEM,
-                onSelect = onThemeSelect
-            )
-
-            ThemeOption(
-                theme = UserThemePreference.LIGHT,
-                selected = stateValue is SettingPageUiState.Success && stateValue.theme == UserThemePreference.LIGHT,
-                onSelect = onThemeSelect
-            )
-
-            ThemeOption(
-                theme = UserThemePreference.DARK,
-                selected = stateValue is SettingPageUiState.Success && stateValue.theme == UserThemePreference.DARK,
-                onSelect = onThemeSelect
-            )
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                val options = listOf(
+                    UserThemePreference.SYSTEM to Icons.Outlined.BrightnessAuto,
+                    UserThemePreference.LIGHT to Icons.Outlined.LightMode,
+                    UserThemePreference.DARK to Icons.Outlined.DarkMode,
+                )
+                options.forEachIndexed { index, (theme, icon) ->
+                    ThemeOption(
+                        theme = theme,
+                        icon = icon,
+                        selected = stateValue is SettingPageUiState.Success && stateValue.theme == theme,
+                        onSelect = onThemeSelect
+                    )
+                    if (index != options.lastIndex) {
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 fun ThemeOption(
-    theme: UserThemePreference, selected: Boolean, onSelect: (UserThemePreference) -> Unit
+    theme: UserThemePreference,
+    icon: ImageVector,
+    selected: Boolean,
+    onSelect: (UserThemePreference) -> Unit
 ) {
     Row(modifier = Modifier
         .fillMaxWidth()
         .clickable { onSelect(theme) }
-        .padding(vertical = 12.dp),
+        .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(16.dp))
+        Text(
+            stringResource(theme.label),
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
         RadioButton(
             selected = selected, onClick = { onSelect(theme) })
-        Spacer(Modifier.width(12.dp))
-        Text(stringResource(theme.label), style = MaterialTheme.typography.bodyLarge)
     }
 }
 
