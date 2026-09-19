@@ -24,6 +24,7 @@ timber = "5.0.1"
 runtime = "1.11.4"
 google-service = "4.5.0"
 google-crashlytics = "3.0.8"
+argon2kt = "1.6.0"
 
 [libraries]
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
@@ -66,6 +67,7 @@ timber-logging = { module = "com.jakewharton.timber:timber", version.ref = "timb
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-startup-runtime = { group = "androidx.startup", name = "startup-runtime", version.ref = "startupRuntime" }
 androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
+argon2kt = { module = "com.lambdapioneer.argon2kt:argon2kt", version.ref = "argon2kt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
