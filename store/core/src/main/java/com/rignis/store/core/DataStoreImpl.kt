@@ -1,14 +1,11 @@
 package com.rignis.store.core
 
 import com.rignis.common.ExecutorFactory
-import com.rignis.store.api.ConflictResolver
 import com.rignis.store.api.DataStore
 import com.rignis.store.api.EncryptedDataEntry
 import com.rignis.store.api.EncryptedDataItem
 import com.rignis.store.api.EncryptedDataRef
-import com.rignis.store.api.SyncStatus
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -16,9 +13,6 @@ import java.util.UUID
 class DataStoreImpl(
     private val dataStoreFactory: DataStoreFactory, private val executorFactory: ExecutorFactory
 ) : DataStore {
-    private val _syncStatus: MutableStateFlow<SyncStatus> = MutableStateFlow(SyncStatus.Idle(0L))
-    override val syncStatus: Flow<SyncStatus>
-        get() = _syncStatus
 
     override suspend fun getDataById(id: String): EncryptedDataItem? =
         withContext(executorFactory.backgroundDispatcher) {
@@ -60,12 +54,4 @@ class DataStoreImpl(
         withContext(executorFactory.backgroundDispatcher) {
             dataStoreFactory.db.secretStoreDao().softDelete(id, System.currentTimeMillis())
         }
-
-    override suspend fun uploadDataToCloud(conflictResolver: ConflictResolver) {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun syncFromCloud(conflictResolver: ConflictResolver) {
-        TODO("Not yet implemented")
-    }
 }
