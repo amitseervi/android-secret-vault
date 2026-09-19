@@ -22,9 +22,14 @@ data class KdfParams(
 
 data class DerivedKey(val keyBytes: ByteArray, val paramsUsed: KdfParams)
 
+// Free-standing so callers (e.g. VaultMetaStore) can generate a salt without
+// constructing a BackupKeyDeriver - and without pulling in argon2kt's JNI
+// shim - since salt generation has nothing to do with Argon2 itself.
+fun newBackupSalt(): ByteArray = ByteArray(SALT_LENGTH_BYTES).also { SecureRandom().nextBytes(it) }
+
 class BackupKeyDeriver(private val argon2Kt: Argon2Kt = Argon2Kt()) {
 
-    fun newSalt(): ByteArray = ByteArray(SALT_LENGTH_BYTES).also { SecureRandom().nextBytes(it) }
+    fun newSalt(): ByteArray = newBackupSalt()
 
     // Tries [params] first and falls back to a lower memory cost on OOM
     // (constrained devices). The caller must persist whichever KdfParams
