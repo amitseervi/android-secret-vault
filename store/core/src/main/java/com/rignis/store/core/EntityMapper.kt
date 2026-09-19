@@ -17,12 +17,22 @@ object EntityMapper {
         return EncryptedDataRef(entityRef.id, entityRef.title)
     }
 
-    fun toEntity(id: String, entry: EncryptedDataEntry): SecretData {
+    fun toEntity(
+        id: String,
+        entry: EncryptedDataEntry,
+        version: Long,
+        updatedAt: Long,
+        lastSyncedVersion: Long?
+    ): SecretData {
         return SecretData(
             id = id,
             title = entry.title,
             encryptedData = entry.encryptedBody,
-            initializationVector = entry.initializationVector
+            initializationVector = entry.initializationVector,
+            version = version,
+            updatedAt = updatedAt,
+            deletedAt = null,
+            lastSyncedVersion = lastSyncedVersion
         )
     }
 }

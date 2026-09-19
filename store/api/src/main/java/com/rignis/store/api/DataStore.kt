@@ -4,7 +4,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface DataStore {
     val syncStatus: Flow<SyncStatus>
-    suspend fun getDataById(id: String): EncryptedDataItem
+    // Null when the secret doesn't exist or has been (soft-)deleted.
+    suspend fun getDataById(id: String): EncryptedDataItem?
     suspend fun getAllData(): Flow<List<EncryptedDataRef>>
     suspend fun insertItem(entry: EncryptedDataEntry)
 

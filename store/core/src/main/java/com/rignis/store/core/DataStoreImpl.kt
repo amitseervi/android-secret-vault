@@ -20,11 +20,10 @@ class DataStoreImpl(
     override val syncStatus: Flow<SyncStatus>
         get() = _syncStatus
 
-    override suspend fun getDataById(id: String): EncryptedDataItem =
+    override suspend fun getDataById(id: String): EncryptedDataItem? =
         withContext(executorFactory.backgroundDispatcher) {
-            return@withContext EntityMapper.toEncryptedDataItem(
-                dataStoreFactory.db.secretStoreDao().getSecretById(id)
-            )
+            dataStoreFactory.db.secretStoreDao().getSecretById(id)
+                ?.let { EntityMapper.toEncryptedDataItem(it) }
         }
 
     override suspend fun getAllData(): Flow<List<EncryptedDataRef>> {
@@ -35,18 +34,31 @@ class DataStoreImpl(
     override suspend fun insertItem(entry: EncryptedDataEntry) =
         withContext(executorFactory.backgroundDispatcher) {
             val id = UUID.randomUUID().toString()
-            dataStoreFactory.db.secretStoreDao().insertItem(EntityMapper.toEntity(id, entry))
+            val now = System.currentTimeMillis()
+            dataStoreFactory.db.secretStoreDao().insertItem(
+                EntityMapper.toEntity(id, entry, version = 1L, updatedAt = now, lastSyncedVersion = null)
+            )
         }
 
     override suspend fun updateExisting(
         id: String, entry: EncryptedDataEntry
     ) = withContext(executorFactory.backgroundDispatcher) {
-        dataStoreFactory.db.secretStoreDao().insertItem(EntityMapper.toEntity(id, entry))
+        val dao = dataStoreFactory.db.secretStoreDao()
+        val existing = dao.getRawById(id)
+        val nextVersion = (existing?.version ?: 0L) + 1L
+        dao.insertItem(
+            EntityMapper.toEntity(
+                id, entry,
+                version = nextVersion,
+                updatedAt = System.currentTimeMillis(),
+                lastSyncedVersion = existing?.lastSyncedVersion
+            )
+        )
     }
 
     override suspend fun deleteDataById(id: String) =
         withContext(executorFactory.backgroundDispatcher) {
-            dataStoreFactory.db.secretStoreDao().deleteItem(id)
+            dataStoreFactory.db.secretStoreDao().softDelete(id, System.currentTimeMillis())
         }
 
     override suspend fun uploadDataToCloud(conflictResolver: ConflictResolver) {

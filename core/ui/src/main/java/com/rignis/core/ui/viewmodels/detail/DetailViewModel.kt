@@ -121,8 +121,15 @@ class DetailViewModel(
         viewModelScope.launch {
             val item = dataStore.getDataById(id)
             encryptedDataItem = item
-            _state.update { current ->
-                current.copy(title = item.title, isEditModeItemLoaded = true, isInEditMode = true)
+            if (item == null) {
+                // Secret no longer exists (e.g. deleted elsewhere) - nothing to edit.
+                _state.update { current ->
+                    current.copy(isInEditMode = true, isSubmissionSuccessful = true)
+                }
+            } else {
+                _state.update { current ->
+                    current.copy(title = item.title, isEditModeItemLoaded = true, isInEditMode = true)
+                }
             }
         }
     }
