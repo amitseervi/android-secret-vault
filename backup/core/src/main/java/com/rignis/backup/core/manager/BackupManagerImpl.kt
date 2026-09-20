@@ -13,10 +13,13 @@ import com.rignis.backup.api.SyncStatus
 import com.rignis.backup.api.SyncTrigger
 import com.rignis.backup.core.auth.GoogleAccountAuthenticator
 import com.rignis.backup.core.auth.GoogleAuthException
+import com.rignis.backup.core.code.BackupCodeStore
+import com.rignis.backup.core.crypto.BackupCodeGenerator
 import com.rignis.backup.core.crypto.BackupKeyHolder
 import com.rignis.backup.core.drive.DriveClient
 import com.rignis.backup.core.drive.DriveException
 import com.rignis.backup.core.meta.VaultMetaStore
+import com.rignis.backup.core.meta.WrongBackupPasswordException
 import com.rignis.backup.core.sync.SyncEngine
 import com.rignis.store.api.BackupSettings
 import com.rignis.store.api.DataStore
@@ -42,7 +45,8 @@ class BackupManagerImpl(
     private val backupStager: BackupStager,
     private val syncEngine: SyncEngine,
     private val syncDataStore: SyncDataStore,
-    private val dataStore: DataStore
+    private val dataStore: DataStore,
+    private val codeStore: BackupCodeStore
 ) : BackupManager {
 
     // Guards every method below - an app-open sync and a manual "Back up
@@ -59,7 +63,7 @@ class BackupManagerImpl(
     override val notBackedUpCount: Flow<Int> get() = syncDataStore.observeNotBackedUpCount()
 
     // The Drive access token, kept only for this process's lifetime - same
-    // "no persisted key material" rule the backup password key follows.
+    // "no persisted key material" rule the backup key itself follows.
     @Volatile
     private var cachedAccessToken: String? = null
 
@@ -71,26 +75,33 @@ class BackupManagerImpl(
         _backupState.value = when {
             settings == null -> BackupState.NotConfigured
             keyHolder.available.value -> BackupState.Ready(settings.accountEmail, settings.lastSyncAt ?: 0L)
-            else -> BackupState.NeedsPassword(settings.accountEmail)
+            else -> BackupState.NeedsCode(settings.accountEmail)
         }
         _syncStatus.value = if (settings == null) SyncStatus.Disabled else SyncStatus.Idle(settings.lastSyncAt ?: 0L)
         restored = true
     }
+
+    override fun generateBackupCode(): String = BackupCodeGenerator.generate()
 
     override suspend fun linkAccount(host: BackupAuthHost): Result<String> = mutex.withLock {
         ensureStateRestored()
         val identity = authenticator.signIn(host.activity).getOrElse { return@withLock Result.failure(it) }
         val token = authenticator.authorizeDriveAppData(host).getOrElse { return@withLock Result.failure(it) }
         cachedAccessToken = token
-        syncDataStore.saveBackupSettings(BackupSettings(identity.accountEmail, keyEpoch = null, lastSyncAt = null))
-        _backupState.value = BackupState.NeedsPassword(identity.accountEmail)
+        syncDataStore.saveBackupSettings(
+            BackupSettings(identity.accountEmail, keyEpoch = null, lastSyncAt = null, storedCode = null)
+        )
+        _backupState.value = BackupState.NeedsCode(identity.accountEmail)
         Result.success(identity.accountEmail)
     }
 
-    // Also handles the very first setup: if no vault exists on Drive yet,
-    // [password] becomes the new one; if one already exists, this behaves
-    // like unlockWithPassword instead of destroying it.
-    override suspend fun enableBackup(host: BackupAuthHost, password: CharArray): Result<Unit> = mutex.withLock {
+    // Also handles linking a second device: if no vault exists on Drive
+    // yet, [code] becomes the new one; if one already exists, this behaves
+    // like unlockWithCode instead of destroying it. Either way the code is
+    // then stored on-device so routine syncs never need it retyped.
+    override suspend fun enableBackup(
+        host: BackupAuthHost, cipherManager: CipherManager, code: CharArray
+    ): Result<Unit> = mutex.withLock {
         ensureStateRestored()
         val settings = syncDataStore.backupSettings()
             ?: return@withLock Result.failure(IllegalStateException("Link a Google account first"))
@@ -99,42 +110,54 @@ class BackupManagerImpl(
 
         val existingMeta = vaultMetaStore.fetch(token).getOrElse { return@withLock Result.failure(it) }
         val unlocked = if (existingMeta == null) {
-            vaultMetaStore.setPassword(token, password)
+            vaultMetaStore.setPassword(token, code)
         } else {
-            vaultMetaStore.unlockWithPassword(token, password)
+            vaultMetaStore.unlockWithPassword(token, code)
         }.getOrElse { return@withLock Result.failure(it) }
 
         keyHolder.unlock(unlocked.derivedKey.keyBytes, unlocked.keyEpoch)
         syncDataStore.clearStaleEpochBlobs(unlocked.keyEpoch)
+        codeStore.store(cipherManager, code)
         syncDataStore.saveBackupSettings(settings.copy(keyEpoch = unlocked.keyEpoch))
         _backupState.value = BackupState.Ready(settings.accountEmail, settings.lastSyncAt ?: 0L)
         Result.success(Unit)
     }
 
-    override suspend fun unlockWithPassword(password: CharArray): Result<Unit> = mutex.withLock {
+    override suspend fun unlockWithCode(cipherManager: CipherManager, code: CharArray): Result<Unit> =
+        mutex.withLock { unlockWithCodeLocked(cipherManager, code) }
+
+    // Callers already holding the mutex (syncNow's auto-unlock) call this
+    // directly instead of unlockWithCode, to avoid re-entrant deadlock.
+    private suspend fun unlockWithCodeLocked(cipherManager: CipherManager, code: CharArray): Result<Unit> {
         ensureStateRestored()
         val settings = syncDataStore.backupSettings()
-            ?: return@withLock Result.failure(IllegalStateException("No account linked"))
+            ?: return Result.failure(IllegalStateException("No account linked"))
         val token = cachedAccessToken
-            ?: return@withLock Result.failure(IllegalStateException("Reauthorize via sync or linkAccount first"))
+            ?: return Result.failure(IllegalStateException("Reauthorize via sync or linkAccount first"))
 
-        val unlocked = vaultMetaStore.unlockWithPassword(token, password).getOrElse { return@withLock Result.failure(it) }
+        val unlocked = vaultMetaStore.unlockWithPassword(token, code).getOrElse { return Result.failure(it) }
         keyHolder.unlock(unlocked.derivedKey.keyBytes, unlocked.keyEpoch)
         syncDataStore.clearStaleEpochBlobs(unlocked.keyEpoch)
+        codeStore.store(cipherManager, code)
         syncDataStore.saveBackupSettings(settings.copy(keyEpoch = unlocked.keyEpoch))
         _backupState.value = BackupState.Ready(settings.accountEmail, settings.lastSyncAt ?: 0L)
-        Result.success(Unit)
+        return Result.success(Unit)
     }
 
     override fun lockBackupKey() {
         keyHolder.lock()
         (_backupState.value as? BackupState.Ready)?.let {
-            _backupState.value = BackupState.NeedsPassword(it.accountEmail)
+            _backupState.value = BackupState.NeedsCode(it.accountEmail)
         }
     }
 
-    override suspend fun changeBackupPassword(
-        host: BackupAuthHost, old: CharArray, new: CharArray
+    override suspend fun revealStoredCode(cipherManager: CipherManager): Result<CharArray> = mutex.withLock {
+        ensureStateRestored()
+        codeStore.retrieve(cipherManager)
+    }
+
+    override suspend fun changeBackupKey(
+        host: BackupAuthHost, cipherManager: CipherManager, oldCode: CharArray, newCode: CharArray
     ): Result<Unit> = mutex.withLock {
         ensureStateRestored()
         val settings = syncDataStore.backupSettings()
@@ -142,14 +165,15 @@ class BackupManagerImpl(
         val token = cachedAccessToken ?: authenticator.authorizeDriveAppData(host)
             .getOrElse { return@withLock Result.failure(it) }.also { cachedAccessToken = it }
 
-        vaultMetaStore.unlockWithPassword(token, old).getOrElse { return@withLock Result.failure(it) }
-        val unlocked = vaultMetaStore.setPassword(token, new).getOrElse { return@withLock Result.failure(it) }
+        vaultMetaStore.unlockWithPassword(token, oldCode).getOrElse { return@withLock Result.failure(it) }
+        val unlocked = vaultMetaStore.setPassword(token, newCode).getOrElse { return@withLock Result.failure(it) }
 
         keyHolder.unlock(unlocked.derivedKey.keyBytes, unlocked.keyEpoch)
         // Every existing Drive file is still under the old key - force a
         // full re-push (opportunistic, as each secret is reopened; never a
         // bulk decrypt) rather than leaving old backups permanently unreadable.
         syncDataStore.bumpAllVersionsForRekey()
+        codeStore.store(cipherManager, newCode)
         syncDataStore.saveBackupSettings(settings.copy(keyEpoch = unlocked.keyEpoch))
         _backupState.value = BackupState.Ready(settings.accountEmail, settings.lastSyncAt ?: 0L)
         Result.success(Unit)
@@ -189,7 +213,7 @@ class BackupManagerImpl(
         }
         cachedAccessToken = token
 
-        // A password changed on another device shows up as Drive's vault
+        // A backup key changed on another device shows up as Drive's vault
         // epoch no longer matching the key we're currently holding.
         val remoteMeta = vaultMetaStore.fetch(token).getOrNull()
         if (remoteMeta != null && keyHolder.available.value && keyHolder.keyEpoch != remoteMeta.keyEpoch) {
@@ -199,10 +223,28 @@ class BackupManagerImpl(
             return@withLock emptyReport()
         }
 
+        // Not held in memory yet this session - try the on-device stored
+        // code first (one biometric prompt) before asking the user to type
+        // anything. A mismatch here means the wrong code or the wrong
+        // Google account, not a transient failure - never keep retrying.
         if (!keyHolder.available.value) {
-            _backupState.value = BackupState.NeedsPassword(settings.accountEmail)
-            _syncStatus.value = SyncStatus.Idle(settings.lastSyncAt ?: 0L)
-            return@withLock emptyReport()
+            val autoUnlocked = codeStore.retrieve(cipherManager).fold(
+                onSuccess = { code ->
+                    val result = unlockWithCodeLocked(cipherManager, code)
+                    code.fill(' ')
+                    result.isSuccess
+                },
+                onFailure = { false }
+            )
+            if (!autoUnlocked) {
+                _backupState.value = if (syncDataStore.backupSettings()?.storedCode != null) {
+                    BackupState.CodeMismatch(settings.accountEmail)
+                } else {
+                    BackupState.NeedsCode(settings.accountEmail)
+                }
+                _syncStatus.value = SyncStatus.Idle(settings.lastSyncAt ?: 0L)
+                return@withLock emptyReport()
+            }
         }
 
         backupStager.stageAllPendingTombstones()
@@ -289,6 +331,7 @@ class BackupManagerImpl(
         is DriveException.ServerError, is DriveException.UnexpectedResponse -> "server_error"
         is DriveException.NotFound -> "not_found"
         is GoogleAuthException -> "google_auth_error"
+        is WrongBackupPasswordException -> "code_mismatch"
         else -> "unknown_error"
     }
 

@@ -4,6 +4,7 @@ import com.rignis.backup.api.BackupManager
 import com.rignis.backup.api.BackupStager
 import com.rignis.backup.core.auth.GoogleAccountAuthenticator
 import com.rignis.backup.core.auth.GoogleAccountAuthenticatorImpl
+import com.rignis.backup.core.code.BackupCodeStore
 import com.rignis.backup.core.crypto.BackupKeyHolder
 import com.rignis.backup.core.drive.DriveClient
 import com.rignis.backup.core.drive.DriveClientImpl
@@ -19,12 +20,13 @@ val backupModule = module {
     single { DriveClientImpl() } bind DriveClient::class
     single { BackupKeyHolder() }
     single { VaultMetaStore(get()) }
+    single { BackupCodeStore(get()) }
     single { BackupStagerImpl(get(), get()) } bind BackupStager::class
     single { SyncEngine(get(), get(), get()) }
     single {
         BackupManagerImpl(
             authenticator = get(), driveClient = get(), vaultMetaStore = get(), keyHolder = get(),
-            backupStager = get(), syncEngine = get(), syncDataStore = get(), dataStore = get()
+            backupStager = get(), syncEngine = get(), syncDataStore = get(), dataStore = get(), codeStore = get()
         )
     } bind BackupManager::class
 }

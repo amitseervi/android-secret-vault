@@ -7,6 +7,7 @@ import com.rignis.store.api.EncryptedDataEntry
 import com.rignis.store.api.ParkedRemoteSecret
 import com.rignis.store.api.SecretSyncRef
 import com.rignis.store.api.StagedBackupBlob
+import com.rignis.store.api.StoredBackupCode
 import com.rignis.store.api.SyncDataStore
 import com.rignis.store.api.SyncFailureKind
 import com.rignis.store.api.SyncItemRecord
@@ -264,10 +265,17 @@ class SyncDataStoreImpl(
 
     override suspend fun backupSettings(): BackupSettings? = withContext(executorFactory.backgroundDispatcher) {
         val email = settingDao.getUserSettingOnce(UserSettingKey.BACKUP_ACCOUNT_EMAIL)?.value ?: return@withContext null
+        val cipherHex = settingDao.getUserSettingOnce(UserSettingKey.BACKUP_CODE_CIPHERTEXT)?.value
+        val ivHex = settingDao.getUserSettingOnce(UserSettingKey.BACKUP_CODE_IV)?.value
         BackupSettings(
             accountEmail = email,
             keyEpoch = settingDao.getUserSettingOnce(UserSettingKey.BACKUP_KEY_EPOCH)?.value,
-            lastSyncAt = settingDao.getUserSettingOnce(UserSettingKey.BACKUP_LAST_SYNC_AT)?.value?.toLongOrNull()
+            lastSyncAt = settingDao.getUserSettingOnce(UserSettingKey.BACKUP_LAST_SYNC_AT)?.value?.toLongOrNull(),
+            storedCode = if (cipherHex != null && ivHex != null) {
+                StoredBackupCode(cipherHex.fromHex(), ivHex.fromHex())
+            } else {
+                null
+            }
         )
     }
 
@@ -278,13 +286,27 @@ class SyncDataStoreImpl(
             settings.lastSyncAt?.let {
                 settingDao.insert(UserSetting(UserSettingKey.BACKUP_LAST_SYNC_AT, it.toString()))
             }
+            val code = settings.storedCode
+            if (code != null) {
+                settingDao.insert(UserSetting(UserSettingKey.BACKUP_CODE_CIPHERTEXT, code.cipherText.toHex()))
+                settingDao.insert(UserSetting(UserSettingKey.BACKUP_CODE_IV, code.iv.toHex()))
+            } else {
+                settingDao.delete(UserSettingKey.BACKUP_CODE_CIPHERTEXT)
+                settingDao.delete(UserSettingKey.BACKUP_CODE_IV)
+            }
             Unit
         }
+
+    // Plain hex, not Base64 - see the identical note in VaultMetaStore.
+    private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
+    private fun String.fromHex(): ByteArray = chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 
     override suspend fun clearBackupSettings() = withContext(executorFactory.backgroundDispatcher) {
         settingDao.delete(UserSettingKey.BACKUP_ACCOUNT_EMAIL)
         settingDao.delete(UserSettingKey.BACKUP_KEY_EPOCH)
         settingDao.delete(UserSettingKey.BACKUP_LAST_SYNC_AT)
+        settingDao.delete(UserSettingKey.BACKUP_CODE_CIPHERTEXT)
+        settingDao.delete(UserSettingKey.BACKUP_CODE_IV)
     }
 
     private fun syncedState(
