@@ -81,6 +81,8 @@ class BackupManagerImpl(
         restored = true
     }
 
+    override suspend fun refreshState() = mutex.withLock { ensureStateRestored() }
+
     override fun generateBackupCode(): String = BackupCodeGenerator.generate()
 
     override suspend fun linkAccount(host: BackupAuthHost): Result<String> = mutex.withLock {

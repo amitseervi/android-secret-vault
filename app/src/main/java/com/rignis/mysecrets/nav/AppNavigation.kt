@@ -11,10 +11,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.rignis.auth.domain.CipherManager
 import com.rignis.core.ui.routes.about.AboutRoute
+import com.rignis.core.ui.routes.backup.CloudBackupRoute
+import com.rignis.core.ui.routes.backup.SyncIssuesRoute
 import com.rignis.core.ui.routes.detail.DetailRoute
 import com.rignis.core.ui.routes.home.HomeRoute
 import com.rignis.core.ui.routes.home.HomeScreenDrawer
 import com.rignis.core.ui.routes.settings.SettingsRoute
+import com.rignis.core.ui.viewmodels.backup.BackupViewModel
 import com.rignis.core.ui.viewmodels.detail.DetailViewModel
 import com.rignis.core.ui.viewmodels.home.HomeViewModel
 import com.rignis.core.ui.viewmodels.settings.SettingsViewModel
@@ -36,6 +39,8 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             }) { modifier, openDrawer ->
                 HomeRoute(
                     viewModel,
+                    backupViewModel = koinViewModel<BackupViewModel>(),
+                    cipherManager = koinInject(),
                     navigateToAddSecret = {
                         navController.navigate("detail")
                     },
@@ -77,7 +82,31 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             val settingViewModel: SettingsViewModel = koinViewModel()
             SettingsRoute(settingViewModel, {
                 navController.navigateUp()
-            }, koinInject())
+            }, koinInject(), onNavigateToCloudBackup = {
+                navController.navigate(AppDestination.CloudBackup.route)
+            })
+        }
+
+        composable(AppDestination.CloudBackup.route) {
+            val backupViewModel: BackupViewModel = koinViewModel()
+            CloudBackupRoute(
+                viewModel = backupViewModel,
+                cipherManager = koinInject(),
+                clipBoardHandler = koinInject(),
+                analytics = koinInject(),
+                onBack = { navController.navigateUp() },
+                onViewIssues = { navController.navigate(AppDestination.SyncIssues.route) }
+            )
+        }
+
+        composable(AppDestination.SyncIssues.route) {
+            val backupViewModel: BackupViewModel = koinViewModel()
+            SyncIssuesRoute(
+                viewModel = backupViewModel,
+                cipherManager = koinInject(),
+                analytics = koinInject(),
+                onBack = { navController.navigateUp() }
+            )
         }
     }
 }

@@ -10,6 +10,12 @@ interface BackupManager {
     val issues: Flow<List<SyncIssue>>
     val notBackedUpCount: Flow<Int>
 
+    // Loads persisted backup settings into backupState/syncStatus - cheap to
+    // call repeatedly (a no-op after the first successful restore this
+    // process). The UI calls this at screen entry so it never shows the
+    // pre-restore default before the real state is known.
+    suspend fun refreshState()
+
     suspend fun linkAccount(host: BackupAuthHost): Result<String>
 
     // Generates a fresh XXXX-XXXX-XXXX-XXXX backup key. Pure/non-suspend -

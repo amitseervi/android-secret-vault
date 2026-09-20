@@ -37,4 +37,24 @@ sealed interface AnalyticsEvent {
     object ThemeChanged : AnalyticsEvent {
         override val name: String = "theme_changed"
     }
+
+    object BackupAccountLinked : AnalyticsEvent {
+        override val name: String = "backup_account_linked"
+    }
+
+    object BackupEnabled : AnalyticsEvent {
+        override val name: String = "backup_enabled"
+    }
+
+    object BackupSyncCompleted : AnalyticsEvent {
+        override val name: String = "backup_sync_completed"
+    }
+
+    object BackupConflictResolved : AnalyticsEvent {
+        override val name: String = "backup_conflict_resolved"
+    }
+
+    object BackupDisabled : AnalyticsEvent {
+        override val name: String = "backup_disabled"
+    }
 }

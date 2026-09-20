@@ -13,4 +13,20 @@ sealed interface AnalyticsParam {
     object ThemeValue : AnalyticsParam {
         override val name: String = "theme_value"
     }
+
+    // Enum name only - trigger kind (APP_OPEN/USER_REQUESTED/...), never a
+    // pushed/pulled/conflict count, since those are derived from vault content.
+    object SyncTriggerValue : AnalyticsParam {
+        override val name: String = "sync_trigger"
+    }
+
+    // "success" | "partial" | "failed" - never the underlying counts.
+    object SyncResultValue : AnalyticsParam {
+        override val name: String = "sync_result"
+    }
+
+    // ACCEPT_LOCAL | ACCEPT_REMOTE - which side of a conflict the user chose.
+    object ConflictResolutionValue : AnalyticsParam {
+        override val name: String = "conflict_resolution"
+    }
 }

@@ -54,8 +54,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rignis.auth.domain.CanAuthenticate
+import com.rignis.auth.domain.CipherManager
 import com.rignis.core.ui.R
 import com.rignis.core.ui.analytics.TrackScreen
+import com.rignis.core.ui.routes.backup.AutoSyncOnOpenEffect
+import com.rignis.core.ui.routes.backup.rememberBackupAuthHost
+import com.rignis.core.ui.viewmodels.backup.BackupViewModel
 import com.rignis.core.ui.viewmodels.home.HomePageEvent
 import com.rignis.core.ui.viewmodels.home.HomePageState
 import com.rignis.core.ui.viewmodels.home.HomeViewModel
@@ -67,6 +71,8 @@ import com.rignis.store.api.EncryptedDataRef
 @Composable
 fun HomeRoute(
     viewModel: HomeViewModel,
+    backupViewModel: BackupViewModel,
+    cipherManager: CipherManager,
     navigateToAddSecret: () -> Unit,
     openDetailPage: (id: String) -> Unit,
     openDrawer: () -> Unit,
@@ -87,6 +93,9 @@ fun HomeRoute(
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+
+    val backupAuthHost = rememberBackupAuthHost()
+    AutoSyncOnOpenEffect(backupViewModel, cipherManager, backupAuthHost)
 
     val state = viewModel.state.collectAsStateWithLifecycle()
     HomeScreen(state, viewModel::onAction, navigateToAddSecret, openDetailPage, openDrawer)

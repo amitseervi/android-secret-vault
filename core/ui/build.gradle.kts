@@ -73,4 +73,5 @@ dependencies {
     implementation(project(":backup:api"))
 
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.activity.compose)
 }

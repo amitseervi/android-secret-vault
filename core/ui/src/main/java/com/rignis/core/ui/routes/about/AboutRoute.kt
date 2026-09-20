@@ -125,6 +125,8 @@ fun AboutRoute(onBack: () -> Unit = {}, versionDetailProvider: VersionDetailProv
                     stringResource(R.string.privacy_b2),
                     stringResource(R.string.privacy_b3),
                     stringResource(R.string.privacy_b4),
+                    stringResource(R.string.privacy_b5),
+                    stringResource(R.string.privacy_b6),
                 )
             )
 

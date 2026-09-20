@@ -1,5 +1,6 @@
 package com.rignis.mysecrets.di
 
+import com.rignis.core.ui.viewmodels.backup.BackupViewModel
 import com.rignis.core.ui.viewmodels.detail.DetailViewModel
 import com.rignis.core.ui.viewmodels.home.HomeViewModel
 import com.rignis.core.ui.viewmodels.settings.SettingsViewModel
@@ -10,4 +11,5 @@ val viewModelModule = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::DetailViewModel)
     viewModelOf(::SettingsViewModel)
+    viewModelOf(::BackupViewModel)
 }
