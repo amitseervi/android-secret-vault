@@ -98,7 +98,8 @@ class VaultMetaStoreTest {
 
         val unlocked = store.unlockWithPassword("token", password.copyOf()).getOrThrow()
 
-        assertEquals(original.keyBytes.toList(), unlocked.keyBytes.toList())
+        assertEquals(original.derivedKey.keyBytes.toList(), unlocked.derivedKey.keyBytes.toList())
+        assertEquals(original.keyEpoch, unlocked.keyEpoch)
     }
 
     @Test

@@ -94,5 +94,7 @@ dependencies {
     implementation(project(":store:core"))
     implementation(project(":analytics:api"))
     implementation(project(":analytics:core"))
+    implementation(project(":backup:api"))
+    implementation(project(":backup:core"))
 
 }

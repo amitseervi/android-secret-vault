@@ -9,12 +9,15 @@ import kotlinx.coroutines.flow.Flow
 // depends on this.
 interface SyncDataStore {
     suspend fun localSyncRefs(): List<SecretSyncRef>
+    suspend fun syncRef(secretId: String): SecretSyncRef?
     fun observeNotBackedUpCount(): Flow<Int>
     fun observeIssues(): Flow<List<SyncItemRecord>>
+    suspend fun issueRecord(secretId: String): SyncItemRecord?
 
     suspend fun stagedBlob(secretId: String): StagedBackupBlob?
     suspend fun stageBlob(blob: StagedBackupBlob)
     suspend fun idsNeedingStaging(): List<String>
+    suspend fun idsNeedingTombstoneStaging(): List<String>
     suspend fun clearAllStagedBlobs()
     suspend fun clearStaleEpochBlobs(currentEpoch: String)
 
@@ -30,6 +33,7 @@ interface SyncDataStore {
     suspend fun clearParkedRemote(secretId: String)
 
     suspend fun markSynced(secretId: String, version: Long, remoteFileId: String)
+    suspend fun recordNotStaged(secretId: String)
     suspend fun recordFailure(secretId: String, kind: SyncFailureKind, detail: String?)
     suspend fun recordConflict(
         secretId: String, remoteVersion: Long, remoteUpdatedAt: Long, remoteDeleted: Boolean, remoteFileId: String
@@ -37,4 +41,9 @@ interface SyncDataStore {
 
     suspend fun purgeConfirmedTombstones(olderThanMillis: Long)
     suspend fun wipeAllSyncState()
+    suspend fun bumpAllVersionsForRekey()
+
+    suspend fun backupSettings(): BackupSettings?
+    suspend fun saveBackupSettings(settings: BackupSettings)
+    suspend fun clearBackupSettings()
 }

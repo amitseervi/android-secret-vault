@@ -2,6 +2,7 @@ package com.rignis.mysecrets
 
 import android.app.Application
 import com.rignis.mysecrets.di.analyticsModule
+import com.rignis.mysecrets.di.backupModule
 import com.rignis.mysecrets.di.cipherModule
 import com.rignis.mysecrets.di.storeModule
 import com.rignis.mysecrets.di.utilityModule
@@ -18,7 +19,7 @@ class SecretVaultApp : Application() {
         }
         startKoin {
             androidContext(this@SecretVaultApp)
-            modules(utilityModule, cipherModule, viewModelModule, storeModule, analyticsModule)
+            modules(utilityModule, cipherModule, viewModelModule, storeModule, analyticsModule, backupModule)
         }
     }
 }

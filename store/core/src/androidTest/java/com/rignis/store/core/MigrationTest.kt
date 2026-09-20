@@ -46,4 +46,27 @@ class MigrationTest {
         db.query("SELECT * FROM secret_remote_staged").close()
         db.query("SELECT * FROM sync_item_state").close()
     }
+
+    @Test
+    fun migrate3To4_addsBackupCiphertextColumnsToParkedRemote() {
+        helper.createDatabase(testDb, 2).apply {
+            close()
+        }
+        helper.runMigrationsAndValidate(testDb, 3, true, Migrations.MIGRATION_2_3).apply {
+            execSQL(
+                "INSERT INTO secret_remote_staged (secret_id, remote_version, remote_updated_at, " +
+                        "remote_deleted, remote_file_id, title, ed, iv, fetched_at) " +
+                        "VALUES ('id1', 1, 1000, 0, 'file1', 'title1', X'00', X'01', 2000)"
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(testDb, 4, true, Migrations.MIGRATION_3_4)
+
+        val cursor = db.query("SELECT bed, biv FROM secret_remote_staged WHERE secret_id='id1'")
+        assertTrue(cursor.moveToFirst())
+        assertEquals(0, cursor.getBlob(0).size)
+        assertEquals(0, cursor.getBlob(1).size)
+        cursor.close()
+    }
 }

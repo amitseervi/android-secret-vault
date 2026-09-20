@@ -13,4 +13,10 @@ interface UserSettingDao {
 
     @Query("SELECT * FROM user_setting WHERE `key` = :key LIMIT 1")
     fun getUserSetting(key: String): Flow<UserSetting?>
+
+    @Query("SELECT * FROM user_setting WHERE `key` = :key LIMIT 1")
+    suspend fun getUserSettingOnce(key: String): UserSetting?
+
+    @Query("DELETE FROM user_setting WHERE `key` = :key")
+    suspend fun delete(key: String)
 }

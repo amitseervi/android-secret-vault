@@ -33,4 +33,29 @@ interface SecretStoreDao {
                 "AND last_synced_version IS NOT NULL AND last_synced_version = version"
     )
     suspend fun purgeConfirmedTombstones(cutoff: Long)
+
+    // A remote tombstone pull: mirrors softDelete's shape but forces version
+    // to the remote's, since the remote copy is now authoritative.
+    @Query(
+        "UPDATE secret_data SET deleted_at=:at, updated_at=:at, version=:version, last_synced_version=:version " +
+                "WHERE id=:id"
+    )
+    suspend fun applyRemoteTombstone(id: String, version: Long, at: Long)
+
+    @Query("UPDATE secret_data SET version=:version, updated_at=:at WHERE id=:id")
+    suspend fun bumpVersionForOverride(id: String, version: Long, at: Long)
+
+    @Query("UPDATE secret_data SET last_synced_version=:version WHERE id=:id")
+    suspend fun markSynced(id: String, version: Long)
+
+    @Query("UPDATE secret_data SET last_synced_version=NULL")
+    suspend fun clearAllLastSyncedVersions()
+
+    // After a backup password change, every existing Drive file is still
+    // encrypted under the OLD key - bumping version makes every secret look
+    // locally-changed so the ordinary push path re-encrypts and re-uploads
+    // it under the new key (opportunistically, as the user reopens each one,
+    // never via a bulk decrypt).
+    @Query("UPDATE secret_data SET version=version+1, updated_at=:at")
+    suspend fun bumpAllVersionsForRekey(at: Long)
 }

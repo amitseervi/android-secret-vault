@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [SecretData::class, UserSetting::class, SecretBackupBlob::class,
-        SecretRemoteStaged::class, SyncItemState::class], version = 3
+        SecretRemoteStaged::class, SyncItemState::class], version = 4
 )
 abstract class SecretRoomDatabase : RoomDatabase() {
     abstract fun secretStoreDao(): SecretStoreDao

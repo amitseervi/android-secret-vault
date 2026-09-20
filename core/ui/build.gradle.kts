@@ -70,6 +70,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":store:api"))
     implementation(project(":analytics:api"))
+    implementation(project(":backup:api"))
 
     implementation(libs.androidx.biometric)
 }

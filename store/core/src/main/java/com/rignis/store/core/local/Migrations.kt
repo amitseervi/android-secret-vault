@@ -49,4 +49,11 @@ internal object Migrations {
             )
         }
     }
+
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `secret_remote_staged` ADD COLUMN `bed` BLOB NOT NULL DEFAULT x''")
+            db.execSQL("ALTER TABLE `secret_remote_staged` ADD COLUMN `biv` BLOB NOT NULL DEFAULT x''")
+        }
+    }
 }

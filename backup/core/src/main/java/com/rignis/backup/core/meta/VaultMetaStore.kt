@@ -12,6 +12,11 @@ import java.util.UUID
 class WrongBackupPasswordException : Exception("The backup password does not match this vault")
 class VaultNotConfiguredException : Exception("No backup vault exists on Drive yet")
 
+// keyEpoch travels with the derived key (not just inside VaultMeta) so a
+// caller never needs a second Drive round-trip just to learn which
+// "generation" of the password it now holds.
+data class UnlockedVault(val derivedKey: DerivedKey, val keyEpoch: String)
+
 // Manages the single _vault_meta.json file every vault has in appDataFolder:
 // the Argon2 salt/cost params (public, not secret) plus a password verifier
 // ciphertext, so a password can be validated - or a change-elsewhere
@@ -30,23 +35,21 @@ class VaultMetaStore(
     // Used both to enable backup for the first time and to change the
     // password later - both cases mint a fresh salt and a fresh keyEpoch,
     // then overwrite whatever vault meta (if any) already exists on Drive.
-    suspend fun setPassword(accessToken: String, password: CharArray): Result<DerivedKey> = runCatching {
+    suspend fun setPassword(accessToken: String, password: CharArray): Result<UnlockedVault> = runCatching {
         val params = KdfParams(salt = newBackupSalt())
         val derived = deriveKey(password, params)
         val cipher = BackupCipher(BackupCipher.keyFrom(derived.keyBytes))
         val sealed = cipher.seal(VERIFIER_SECRET_ID, VERIFIER_VERSION, VERIFIER_PLAINTEXT)
+        val epoch = UUID.randomUUID().toString()
         val meta = VaultMeta(
-            kdfParams = derived.paramsUsed,
-            keyEpoch = UUID.randomUUID().toString(),
-            verifierIv = sealed.iv,
-            verifierCipherText = sealed.cipherText
+            kdfParams = derived.paramsUsed, keyEpoch = epoch, verifierIv = sealed.iv, verifierCipherText = sealed.cipherText
         )
 
         upload(accessToken, meta)
-        derived
+        UnlockedVault(derived, epoch)
     }
 
-    suspend fun unlockWithPassword(accessToken: String, password: CharArray): Result<DerivedKey> = runCatching {
+    suspend fun unlockWithPassword(accessToken: String, password: CharArray): Result<UnlockedVault> = runCatching {
         val meta = fetch(accessToken).getOrThrow() ?: throw VaultNotConfiguredException()
         val derived = deriveKey(password, meta.kdfParams)
         val cipher = BackupCipher(BackupCipher.keyFrom(derived.keyBytes))
@@ -55,7 +58,7 @@ class VaultMetaStore(
         } catch (e: Exception) {
             throw WrongBackupPasswordException()
         }
-        derived
+        UnlockedVault(derived, meta.keyEpoch)
     }
 
     private suspend fun upload(accessToken: String, meta: VaultMeta) {

@@ -9,7 +9,7 @@ class DataStoreFactory private constructor(internal val db: SecretRoomDatabase) 
 
     constructor(context: Context) : this(
         Room.databaseBuilder(context, SecretRoomDatabase::class.java, "rignis_db")
-            .addMigrations(Migrations.MIGRATION_2_3)
+            .addMigrations(Migrations.MIGRATION_2_3, Migrations.MIGRATION_3_4)
             .build()
     )
 

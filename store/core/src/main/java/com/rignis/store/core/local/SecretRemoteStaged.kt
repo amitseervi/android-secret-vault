@@ -18,6 +18,8 @@ data class SecretRemoteStaged(
     @ColumnInfo("title") val title: String,
     @ColumnInfo("ed") val encryptedData: ByteArray,
     @ColumnInfo("iv") val initializationVector: ByteArray,
+    @ColumnInfo(name = "bed", defaultValue = "x''") val backupCipherText: ByteArray = ByteArray(0),
+    @ColumnInfo(name = "biv", defaultValue = "x''") val backupIv: ByteArray = ByteArray(0),
     @ColumnInfo("fetched_at") val fetchedAt: Long
 ) {
     override fun equals(other: Any?): Boolean {
